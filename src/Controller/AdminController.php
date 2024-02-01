@@ -875,7 +875,8 @@ public function demandeResetPassword(EntityManagerInterface $em, Request $reques
     $em->persist($user);
     $em->flush();
 
-    $resetLink = 'http://127.0.0.1:8000/reset-password?token=' . $resetToken;
+    $resetLink = 'http://127.0.0.1:8000/reset-password-form?token=' . $resetToken;
+
 
     $email = (new Email())
         ->from('ngombourama@gmail.com')
@@ -913,8 +914,10 @@ public function demandeResetPassword(EntityManagerInterface $em, Request $reques
  * )
  */
 #[Route('/reset-password', name: 'show_reset_password_form', methods: ['GET'])]
-public function showResetPasswordForm(Request $request): Response {
+public function showResetPasswordForm(Request $request): Response
+{
     $token = $request->query->get('token');
+
     return $this->render('reset_password_form.html.twig', [
         'resetToken' => $token,
     ]);
@@ -944,22 +947,28 @@ public function showResetPasswordForm(Request $request): Response {
  * )
  */
 
-#[Route('/reset-password', name: 'reset_password', methods: ['POST'])]
-public function resetPassword(EntityManagerInterface $em, Request $request, UserPasswordHasherInterface $passwordHasher): JsonResponse {
-    $data = json_decode($request->getContent(), true);
-    $user = $em->getRepository(User::class)->findOneBy(['resetToken' => $data['token']]);
+ #[Route('/reset-password', name: 'reset_password', methods: ['POST'])]
+ public function resetPassword(Request $request, UserPasswordHasherInterface $passwordHasher,EntityManagerInterface $entityManager): Response
+ {
+     $token = $request->request->get('token');
+     $password = $request->request->get('password');
 
-    if (!$user) {
-        return $this->json(['message' => 'Token invalide'], JsonResponse::HTTP_BAD_REQUEST);
-    }
+    //  $entityManager = $this->getDoctrine()->getManager();
+     $user = $entityManager->getRepository(User::class)->findOneBy(['resetToken' => $token]);
 
-    $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
-    $user->setResetToken(null);
-    $em->persist($user);
-    $em->flush();
+     if (!$user) {
+         $this->addFlash('error', 'Token invalide');
+         return $this->redirectToRoute('show_reset_password_form', ['token' => $token]);
+     }
 
-    return $this->json(['message' => 'Mot de passe réinitialisé avec succès'], JsonResponse::HTTP_OK);
-}
+     $user->setPassword($passwordHasher->hashPassword($user, $password));
+     $user->setResetToken(null);
+     $entityManager->persist($user);
+     $entityManager->flush();
+
+     $this->addFlash('success', 'Mot de passe réinitialisé avec succès');
+     return $this->redirectToRoute('reset-password-form'); 
+ }
 
 
 
