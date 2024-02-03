@@ -34,7 +34,7 @@ security:
         - { path: ^/api/inscrire-donateur, roles: PUBLIC_ACCESS }
         - { path: ^/api/inscrire-admin, roles: PUBLIC_ACCESS }
         - { path: ^/api/ajouter-dahra, roles: IS_AUTHENTICATED_FULLY }
-        # - { path: ^/api/ajouter-dahra, roles: PUBLIC_ACCESS }
+        - { path: ^/api/add-talibeTest, roles: PUBLIC_ACCESS }
         - { path: ^/api/creer-parrainage, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/faire-don, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
@@ -42,3 +42,4 @@ security:
         - { path: ^/api/demande-reset-password, roles: PUBLIC_ACCESS }
         - { path: ^/api/recherche-dahra, roles: PUBLIC_ACCESS }
         - { path: ^/api/devenir-marraine, roles: PUBLIC_ACCESS }
+        - { path: ^/api/faire-donTest, roles: PUBLIC_ACCESS }

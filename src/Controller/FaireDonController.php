@@ -177,5 +177,27 @@ public function listeDons(EntityManagerInterface $em): JsonResponse
     return new JsonResponse($donsArray, JsonResponse::HTTP_OK);
 }
 
+#[Route('/faire-donTest', name: 'faire_donTest', methods: ['POST'])]
+    public function faireDonTest(Request $request, EntityManagerInterface $em, ValidatorInterface $validator, Security $security): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        
+    
+        $faireDon = new FaireDon();
+        $faireDon->setDate(new \DateTime());
+        $faireDon->setStatus($data['status'] ?? 'en attente');
+        $faireDon->setTypeDon($data['typeDon'] ?? null);
+        $faireDon->setAdresseProvenance($data['adresseProvenance'] ?? null);
+        $faireDon->setDescriptionDon($data['descriptionDon'] ?? null);
+        $faireDon->setDisponibiliteDon($data['disponibiliteDon'] ?? null);
+        $dahraName = $data['dahra_name'] ?? null;
+        $dahra = $em->getRepository(Dahra::class)->findOneBy(['nom' => $dahraName]);
+    
+    
+        $em->persist($faireDon);
+        $em->flush();
+    
+        return new JsonResponse(['message' => 'Don effectué avec succès'], JsonResponse::HTTP_CREATED);
+    }
     
 }

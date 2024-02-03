@@ -12,12 +12,12 @@ class DevenirMarraineTest extends WebTestCase
         $client = static::createClient();
 
         $data = [
-            'nom' => 'bourama',
-            'prenom' => 'bourama',
-            'email' => 'jane.doe@example.com',
-            'password' => 'strongpassword',
-            'adresse' => '321 rue Liberté',
-            'numeroTelephone' => '9876543210',
+            'nom' => 'boura',
+            'prenom' => 'bounama',
+            'email' => 'bourama12@gmail.com',
+            'password' => 'password123',
+            'adresse' => 'dakar',
+            'numeroTelephone' => '783718472',
         ];
 
         $client->request('POST', '/api/devenir-marraine', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($data));

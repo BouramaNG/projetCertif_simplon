@@ -11,14 +11,14 @@ class DevenirDahraTest extends WebTestCase
         $client = static::createClient();
 
         $data = [
-            'email' => 'emailtest@dahra.com',
+            'email' => 'ngombourama18@gmail.com',
             'password' => 'password123',
             'numeroTelephone' => '771234567',
-            'nom' => 'Dahra Test',
-            'nomOuztas' => 'Ouztas Test',
-            'adresse' => 'Adresse Test',
-            'region' => 'Region Test',
-            'numeroTelephoneOuztas' => '123456789',
+            'nom' => 'sahih Bouhary',
+            'nomOuztas' => 'Bouhary',
+            'adresse' => 'Dakar',
+            'region' => 'Dakar',
+            'numeroTelephoneOuztas' => '773456789',
             'nombreTalibe' => 100
         ];
 

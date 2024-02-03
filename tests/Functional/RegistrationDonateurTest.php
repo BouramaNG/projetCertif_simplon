@@ -14,10 +14,10 @@ class RegistrationDonateurTest extends WebTestCase
         $data = [
             'nom' => 'bourama',
             'prenom' => 'bourama',
-            'email' => 'jean.dupont@example.com',
+            'email' => 'boura14@gmail.com',
             'password' => 'password123',
-            'adresse' => '123 rue de la Paix',
-            'numeroTelephone' => '0123456789',
+            'adresse' => 'Pikine',
+            'numeroTelephone' => '783718472',
         ];
 
         $client->request('POST', '/api/inscrire-donateur', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($data));

@@ -307,7 +307,7 @@ class DahraController extends AbstractController
         $talibe->setDescription($data['description']);
         $talibe->setImage($data['image'] ?? null);
     
-        $dateArriveTalibe = \DateTime::createFromFormat('Y-m-d', $data['datearrivetalibe']);
+        $dateArriveTalibe = \DateTime::createFromFormat('Y-m-d', $data['daterrivetalibe']);
         $talibe->setDateArriveTalibe($dateArriveTalibe);
     
         $talibe->setPresenceTalibe($data['presencetalibe'] ?? 'present');
@@ -361,6 +361,78 @@ class DahraController extends AbstractController
     
         return null;
     }
+
+
+    // #[Route('/dahra/add-talibeTest', name: 'add_talibe_to_dahra', methods: ['POST'])]
+    // public function addTalibeToDahraTest(Request $request, EntityManagerInterface $entityManager, Security $security, ValidatorInterface $validator): Response
+    // {
+    //     $user = $security->getUser();
+        
+    //     if (!$user || !in_array('ROLE_DAHRA', $user->getRoles())) {
+    //         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    //     }
+    
+    //     $user = $this->getUser();
+    //     if (!$user || !$user->isActive()) {
+    //         return new JsonResponse(['error' => 'Votre compte est bloqué. Vous ne pouvez pas ajouter de talibé.'], Response::HTTP_FORBIDDEN);
+    //     }
+    
+    //     $dahra = $user->getDahras()->first();
+    //     if (!$dahra) {
+    //         return new JsonResponse(['message' => 'Dahra non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+    //     }
+    
+    //     $data = json_decode($request->getContent(), true);
+    
+    //     $talibe = new Talibe();
+    //     $talibe->setNom($data['nom']);
+    //     $talibe->setPrenom($data['prenom']);
+    //     $talibe->setAge($data['age']);
+    //     $talibe->setAdresse($data['adresse']);
+    //     $talibe->setSituation($data['situation']);
+    //     $talibe->setDescription($data['description']);
+    //     $talibe->setImage($data['image'] ?? null);
+    
+    //     $dateArriveTalibe = \DateTime::createFromFormat('Y-m-d', $data['datearrivetalibe']);
+    //     $talibe->setDateArriveTalibe($dateArriveTalibe);
+    
+    //     $talibe->setPresenceTalibe($data['presencetalibe'] ?? 'present');
+    
+    //     $talibe->setDahra($dahra);
+    
+    //     // Ajoutez les contraintes de validation ici
+    //     $violations = $validator->validate($talibe);
+    
+    //     // Validation personnalisée pour vérifier le doublon de nom, prénom et âge
+    //     $doublonViolation = $this->validateDoublon($talibe, $entityManager);
+    //     if ($doublonViolation) {
+    //         $violations->add($doublonViolation);
+    //     }
+    
+    //     if (count($violations) > 0) {
+    //         $errors = [];
+    //         foreach ($violations as $violation) {
+    //             $errors[$violation->getPropertyPath()] = $violation->getMessage();
+    //         }
+    
+    //         return $this->json(['errors' => $errors], Response::HTTP_BAD_REQUEST);
+    //     }
+    
+    //     $entityManager->persist($talibe);
+    //     $entityManager->flush();
+    
+    //     return $this->json([
+    //         'message' => 'Choukrane vous avez ajouté avec succès un Talibe !',
+    //         'talibeId' => $talibe->getId()
+    //     ], Response::HTTP_CREATED);
+    // }
+
+
+
+
+
+
+
 /**
  * @Route("/modifier_info_talibe/{id}", name="modifier_talibe", methods={"GET", "PUT"})
  * @OA\Put(
@@ -847,6 +919,38 @@ public function supprimerTalibe(int $id, EntityManagerInterface $entityManager, 
     $entityManager->flush();
 
     return new JsonResponse(['message' => 'Talibé supprimé avec succès'], JsonResponse::HTTP_OK);
+}
+
+
+
+#[Route('/add-talibeTest', name: 'add_talibe_to_dahra', methods: ['POST'])]
+public function addTalibeToDahraTest(Request $request, EntityManagerInterface $entityManager, Security $security, ValidatorInterface $validator): Response
+{
+    
+    $data = json_decode($request->getContent(), true);
+
+    $talibe = new Talibe();
+    $talibe->setNom($data['nom']);
+    $talibe->setPrenom($data['prenom']);
+    $talibe->setAge($data['age']);
+    $talibe->setAdresse($data['adresse']);
+    $talibe->setSituation($data['situation']);
+    $talibe->setDescription($data['description']);
+    $talibe->setImage($data['image'] ?? null);
+
+    $dateArriveTalibe = \DateTime::createFromFormat('Y-m-d', $data['datearrivetalibe']);
+    $talibe->setDateArriveTalibe($dateArriveTalibe);
+
+    $talibe->setPresenceTalibe($data['presencetalibe'] ?? 'present');
+
+   
+    $entityManager->persist($talibe);
+    $entityManager->flush();
+
+    return $this->json([
+        'message' => 'Choukrane vous avez ajouté avec succès un Talibe !',
+        'talibeId' => $talibe->getId()
+    ], Response::HTTP_CREATED);
 }
 
 }

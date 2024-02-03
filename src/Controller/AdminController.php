@@ -798,6 +798,30 @@ public function assignRole(Request $request, UserRepository $userRepository, Ent
 
     return new JsonResponse(['message' => 'Rôle modifié avec succès']);
 }
+
+#[Route('/liste-roles', name: 'admin_liste_roles', methods: ['GET'])]
+public function listeRoles(EntityManagerInterface $entityManager): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN'); // S'assure que seul l'admin peut accéder à cette route
+
+        // $entityManager = $this->getDoctrine()->getManager();
+        $userRepository = $entityManager->getRepository(User::class);
+        $users = $userRepository->findAll();
+
+        $allRoles = [];
+
+        foreach ($users as $user) {
+            $userRoles = $user->getRoles();
+            $allRoles = array_merge($allRoles, $userRoles);
+        }
+
+        // Remove duplicate roles
+        $allRoles = array_unique($allRoles);
+
+        return new JsonResponse(['roles' => $allRoles]);
+    }
+
+
 /**
  * @OA\Post(
  *     path="/admin/activate/dahra/{id}",

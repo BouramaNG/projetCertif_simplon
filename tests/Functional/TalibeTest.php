@@ -10,26 +10,30 @@ class TalibeTest extends WebTestCase
 {
     public function testAddTalibeToDahra()
     {
-        $client = static::createClient(['environment' => 'test']);
+        $client = static::createClient();
 
         $data = [
-            'nom' => 'Talibe Nom',
-            'prenom' => 'Talibe Prenom',
-            'age' => 12,
-            'adresse' => 'Adresse Talibe',
-            'situation' => 'Situation Talibe',
-            'description' => 'Description Talibe',
-            'datearrivetalibe' => '2024-01-22',
+            'nom' => 'NomTest',
+            'prenom' => 'PrenomTest',
+            'age' => 25,
+            'dahra_id' => 1,
+            'adresse' => 'AdresseTest',
+            'situation' => 'SituationTest',
+            'description' => 'DescriptionTest',
+            'image' => 'ImageTest.jpg',
+            'datearrivetalibe' => '2022-01-01', // Assurez-vous que cette clé correspond à ce que votre action attend
             'presencetalibe' => 'present',
-            
         ];
 
-        $client->request('POST', '/api/dahra/add-talibe', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($data));
+        $client->request('POST', 'api/add-talibeTest', [], [], [], json_encode($data));
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('talibeId', $responseData);
-        $this->assertNotEmpty($responseData['talibeId']);
-       
+        $this->assertEquals(201, $client->getResponse()->getStatusCode());
+        $responseContent = json_decode($client->getResponse()->getContent(), true);
+
+        // Assurez-vous que la réponse contient le message attendu et l'ID du Talibe
+        $this->assertArrayHasKey('message', $responseContent);
+        $this->assertArrayHasKey('talibeId', $responseContent);
+        $this->assertEquals('Choukrane vous avez ajouté avec succès un Talibe !', $responseContent['message']);
+        $this->assertNotEmpty($responseContent['talibeId']);
     }
 }
