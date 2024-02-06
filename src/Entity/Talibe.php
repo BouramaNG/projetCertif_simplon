@@ -2,13 +2,16 @@
 
 namespace App\Entity;
 
-use App\Repository\TalibeRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-
+use App\Repository\TalibeRepository;
+use Doctrine\Common\Collections\Collection;
+use Symfony\Component\HttpFoundation\File\File;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: TalibeRepository::class)]
+#[Vich\Uploadable]
 class Talibe
 {
     #[ORM\Id]
@@ -50,9 +53,26 @@ class Talibe
     #[ORM\Column(length: 255)]
     private ?string $presenceTalibe = 'present'; // Valeur par défaut
 
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Image(
+        maxSize: "5M",
+        mimeTypes: ["image/jpeg", "image/png","image/jpg", "image/gif"]
+    )]
+    #[ Vich\UploadableField(mapping: 'dahra_images', fileNameProperty: 'imageFilename')]
+    private ?File $imageFile = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?string $imageFilename = null;
+
+   
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
     public function __construct()
     {
         $this->parrainages = new ArrayCollection();
+        $this->imageFilename = null;
+        $this->imageFile = null;
     }
 
     public function getId(): ?int
@@ -214,5 +234,32 @@ class Talibe
 
         return $this;
     }
+
+    public function getImageFilename(): ?string
+    {
+        return $this->imageFilename;
+    }
+    public function setImageFile(?File $imageFile = null): void
+    {
+        $this->imageFile = $imageFile;
+
+        if (null !== $imageFile) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+    }
+    
+    public function setImageFilename(?string $imageFilename): static
+    {
+        $this->imageFilename = $imageFilename;
+    
+        return $this;
+    }
+    
+    public function getImageFile(): ?File
+    {
+        return $this->imageFile;
+    }
+    
+   
     
 }

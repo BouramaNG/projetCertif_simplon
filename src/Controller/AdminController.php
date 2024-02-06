@@ -8,9 +8,10 @@ use App\Entity\Talibe;
 use App\Entity\FaireDon;
 use App\Entity\Parrainage;
 use Psr\Log\LoggerInterface;
+use App\Service\FileUploader;
 use OpenApi\Annotations as OA;
-use Symfony\Component\Mime\Email;
 
+use Symfony\Component\Mime\Email;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +20,7 @@ use Symfony\Component\Security\Core\Security;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -26,24 +28,29 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 
-  /**
+/**
  * @OA\Post(
  *     path="/api/ajouter-dahra",
- *     summary="Enregistrer un nouveau Dahra",
+ *     summary="Enregistrer un nouveau Dahra Par Admin",
  *     description="Permet d'enregistrer un nouveau Dahra avec les informations fournies.",
  *     @OA\RequestBody(
  *         required=true,
  *         description="Données nécessaires pour l'enregistrement d'un Dahra",
- *         @OA\JsonContent(
- *             required={"email", "password", "nom", "nomOuztas", "adresse", "region", "numeroTelephoneOuztas", "nombreTalibe"},
- *             @OA\Property(property="email", type="string", format="email", example="contact@dahraexample.com"),
- *             @OA\Property(property="password", type="string", format="password", example="StrongPassword123"),
- *             @OA\Property(property="nom", type="string", example="Dahra Al Azhar"),
- *             @OA\Property(property="nomOuztas", type="string", example="Cheikh Modou"),
- *             @OA\Property(property="adresse", type="string", example="123 Avenue des Marabouts"),
- *             @OA\Property(property="region", type="string", example="Dakar"),
- *             @OA\Property(property="numeroTelephoneOuztas", type="string", example="0123456789"),
- *             @OA\Property(property="nombreTalibe", type="integer", example=100)
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 required={"email", "password", "nom", "nomOuztas", "adresse", "region", "numeroTelephoneOuztas","numeroTelephone", "nombreTalibe", "imageFile"},
+ *                 @OA\Property(property="email", type="string", format="email", example="contact@gmail.com"),
+ *                 @OA\Property(property="numeroTelephone", type="string", example="783718472"),
+ *                 @OA\Property(property="password", type="string", format="password", example="Passer123"),
+ *                 @OA\Property(property="nom", type="string", example="Dahra Al Azhar"),
+ *                 @OA\Property(property="nomOuztas", type="string", example="Cheikh Modou"),
+ *                 @OA\Property(property="adresse", type="string", example="Marabouts"),
+ *                 @OA\Property(property="region", type="string", example="Dakar"),
+ *                 @OA\Property(property="numeroTelephoneOuztas", type="string", example="783718472"),
+ *                 @OA\Property(property="nombreTalibe", type="integer", example=100),
+ *                 @OA\Property(property="imageFile", type="string", format="binary", description="Fichier image du Dahra")
+ *             )
  *         )
  *     ),
  *     @OA\Response(
@@ -60,8 +67,12 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *     @OA\Response(
  *         response=400,
  *         description="Données invalides fournies"
- *     )
+ *     ),
+ *     security={
+ *         {"Bearer": {}}
+ *     }
  * )
+ * @IgnoreAnnotation("Security")
  */
 
 #[Route('/api', name: 'api_')]
@@ -71,129 +82,27 @@ class AdminController extends AbstractController
 
 #[Route('/ajouter-dahra', name: 'ajouter_dahra', methods: ['POST'])]
 
-public function ajouterDahra(Request $request,Security $security, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator): JsonResponse
+public function ajouterDahra(Request $request,Security $security, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator,FileUploader $fileUploader): JsonResponse
     {
 
         $user = $security->getUser();
     if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
-        $data = json_decode($request->getContent(), true);
-
-        $constraints = new Assert\Collection([
-            'email' => [new Assert\NotBlank(), new Assert\Email()],
-            'password' => [new Assert\NotBlank()],
-            'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-            'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-            'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-            'region' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-            'numeroTelephone' => [
-                new Assert\NotBlank(),
-                new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
-            ],
-            'numeroTelephoneOuztas' => [
-                new Assert\NotBlank(),
-                new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
-            ],
-            'nombreTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'integer'])],
-        ]);
-    
-        $violations = $validator->validate($data, $constraints);
-    
-        if (count($violations) > 0) {
-            return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
-        }
-    
-        if (!isset($data['email'], $data['password'], $data['nom'], $data['nomOuztas'], $data['adresse'], $data['region'], $data['numeroTelephoneOuztas'], $data['nombreTalibe'])) {
-            return new JsonResponse(['error' => 'Des champs obligatoires manques'], Response::HTTP_BAD_REQUEST);
-        }
-    
-        $user = new User();
-        $user->setEmail($data['email']);
-        $user->setNumeroTelephone($data['numeroTelephone']);
-        $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
-        $user->setRoles(['ROLE_DAHRA']);
-        $user->setIsActive(false);
-    
-        $dahra = new Dahra();
-        $dahra->setNom($data['nom']);
-        $dahra->setNomOuztas($data['nomOuztas']);
-        $dahra->setAdresse($data['adresse']);
-        $dahra->setRegion($data['region']);
-        $dahra->setNumeroTelephoneOuztas($data['numeroTelephoneOuztas']);
-        $dahra->setNombreTalibe($data['nombreTalibe']);
-        $dahra->setUser($user);
-        
-        $entityManager->persist($user);
-        $entityManager->persist($dahra);
-        $entityManager->flush();
-    
-        $responseData = $serializer->serialize($dahra, 'json');
-        return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
-    }
-
-
- /**
- * @OA\Put(
- *     path="/api/modifier-dahra/{id}",
- *     summary="Mettre à jour une Dahra",
- *     description="Permet à un administrateur de mettre à jour les informations d'une Dahra",
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"nom", "nomOuztas", "adresse", "region", "numeroTelephoneOuztas"},
- *             @OA\Property(property="nom", type="string", example="Nom de la Dahra"),
- *             @OA\Property(property="nomOuztas", type="string", example="Nom Ouztas"),
- *             @OA\Property(property="adresse", type="string", example="Adresse"),
- *             @OA\Property(property="region", type="string", example="Region"),
- *             @OA\Property(property="numeroTelephoneOuztas", type="string", example="Numéro de téléphone")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Dahra mise à jour avec succès"
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Données invalides"
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Dahra non trouvée"
- *     )
- * )
- */
-
-
-
-#[Route('/modifier-dahra/{id}', name: 'modifier-dahra/{id}', methods: ['POST'])]
-public function modifierDahra(int $id, Request $request, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator, Security $security): JsonResponse
-{
-    $user = $security->getUser();
-
-    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
-        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
-    }
-
-    $dahra = $entityManager->getRepository(Dahra::class)->find($id);
-
-    if (!$dahra) {
-        return new JsonResponse(['message' => 'Dahra non trouvé'], JsonResponse::HTTP_NOT_FOUND);
-    }
-
     $data = json_decode($request->getContent(), true);
-
+   
+    
     $constraints = new Assert\Collection([
+        'email' => [new Assert\NotBlank(), new Assert\Email()],
+        'password' => [new Assert\NotBlank()],
         'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'region' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'numeroTelephone' => [
+            new Assert\NotBlank(),
+            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
+        ],
         'numeroTelephoneOuztas' => [
             new Assert\NotBlank(),
             new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
@@ -207,17 +116,166 @@ public function modifierDahra(int $id, Request $request, UserPasswordHasherInter
         return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
     }
 
-    $dahra->setNom($data['nom']);
-    $dahra->setNomOuztas($data['nomOuztas']);
-    $dahra->setAdresse($data['adresse']);
-    $dahra->setRegion($data['region']);
-    $dahra->setNumeroTelephoneOuztas($data['numeroTelephoneOuztas']);
-    $dahra->setNombreTalibe($data['nombreTalibe']);
+
+$user = new User();
+$user->setEmail($request->request->get('email'));
+$user->setNumeroTelephone($request->request->get('numeroTelephone'));
+$user->setPassword($passwordHasher->hashPassword($user, $request->request->get('password')));
+$user->setRoles(['ROLE_DAHRA']);
+$user->setIsActive(false);
+
+$dahra = new Dahra();
+$dahra->setNom($request->request->get('nom'));
+$dahra->setNomOuztas($request->request->get('nomOuztas'));
+$dahra->setAdresse($request->request->get('adresse'));
+$dahra->setRegion($request->request->get('region'));
+$dahra->setNumeroTelephoneOuztas($request->request->get('numeroTelephoneOuztas'));
+$dahra->setNombreTalibe($request->request->get('nombreTalibe'));
+$dahra->setUser($user);
+   
+if ($request->files->has('imageFile')) {
+    $imageFile = $request->files->get('imageFile');
+    if ($imageFile) {
+      
+        $uploadedFilePath = $fileUploader->upload($imageFile);
+        
+    
+        $dahra->setImageFilename($uploadedFilePath);
+    }
+}
+
+$entityManager->persist($user);
+$entityManager->persist($dahra);
+$entityManager->flush();
+
+$responseData = $serializer->serialize($dahra, 'json');
+return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
+}
+
+
+/**
+ * Modifier les informations d'un Dahra Par Admin.
+ * 
+ * @OA\Put(
+ *     path="/api/modifier-dahra-admin/{id}",
+ *     summary="Modifier les informations d'un Dahra Par Admin",
+ *     description="Permet à un Dahra de mettre à jour ses informations en spécifiant l'identifiant du Dahra dans l'URL.",
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="Identifiant du Dahra à modifier",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=true,
+ *         description="Données nécessaires pour la mise à jour du Dahra",
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 @OA\Property(property="nom", type="string", example="Nouveau Nom"),
+ *                 @OA\Property(property="nomOuztas", type="string", example="Nouveau Nom Ouztas"),
+ *                 @OA\Property(property="adresse", type="string", example="Nouvelle Adresse"),
+ *                 @OA\Property(property="region", type="string", example="Nouvelle Région"),
+ *                 @OA\Property(property="numeroTelephoneOuztas", type="string", example="Nouveau Numéro de Téléphone Ouztas"),
+ *                 @OA\Property(property="nombreTalibe", type="integer", example=50),
+ *                 @OA\Property(property="password", type="string", example="NouveauMotDePasse"),
+ *                 @OA\Property(property="imageFile", type="file", format="binary"),
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Informations du Dahra mises à jour avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="id", type="integer", example=1),
+ *             @OA\Property(property="nom", type="string", example="Nouveau Nom"),
+ *             @OA\Property(property="nomOuztas", type="string", example="Nouveau Nom Ouztas"),
+ *             @OA\Property(property="adresse", type="string", example="Nouvelle Adresse"),
+ *             @OA\Property(property="region", type="string", example="Nouvelle Région"),
+ *             @OA\Property(property="numeroTelephoneOuztas", type="string", example="Nouveau Numéro de Téléphone Ouztas"),
+ *             @OA\Property(property="nombreTalibe", type="integer", example=50),
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Dahra non trouvé"
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Erreur de validation ou problème lors de la mise à jour"
+ *     ),
+ *     security={
+ *         {"bearerAuth": {}}
+ *     }
+ * )
+ */
+
+
+
+#[Route('/modifier-dahra-admin/{id}', name: 'modifier-dahra/{id}', methods: ['PUT'])]
+public function modifierDahra(int $id, Request $request,FileUploader $fileUploader, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+
+    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+
+    $data = json_decode($request->getContent(), true);
+     $constraints = new Assert\Collection([
+        'email' => [new Assert\NotBlank(), new Assert\Email()],
+        'password' => [new Assert\NotBlank()],
+        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'region' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'numeroTelephone' => [
+            new Assert\NotBlank(),
+            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
+        ],
+        'numeroTelephoneOuztas' => [
+            new Assert\NotBlank(),
+            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
+        ],
+        'nombreTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'integer'])],
+    ]);
+
+    $violations = $validator->validate($data, $constraints);
+
+    if (count($violations) > 0) {
+        return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+    }
+ 
+     $dahra = $entityManager->getRepository(Dahra::class)->find($id);
+ 
+     if (!$dahra) {
+         return new JsonResponse(['error' => 'Dahra not found'], Response::HTTP_NOT_FOUND);
+     }
+     $requestData = json_decode($request->getContent(), true);
+
+    $dahra->setNom($requestData['nom'] ?? $dahra->getNom());
+    $dahra->setNomOuztas($requestData['nomOuztas'] ?? $dahra->getNomOuztas());
+    $dahra->setAdresse($requestData['adresse'] ?? $dahra->getAdresse());
+    $dahra->setRegion($requestData['region'] ?? $dahra->getRegion());
+    $dahra->setNumeroTelephoneOuztas($requestData['numeroTelephoneOuztas'] ?? $dahra->getNumeroTelephoneOuztas());
+    $dahra->setNombreTalibe($requestData['nombreTalibe'] ?? $dahra->getNombreTalibe());
+
+    if ($request->files->has('imageFile')) {
+        $imageFile = $request->files->get('imageFile');
+        if ($imageFile) {
+            $uploadedFilePath = $fileUploader->upload($imageFile);
+            $dahra->setImageFilename($uploadedFilePath);
+        }
+    }
+    if (!empty($requestData['password'])) {
+        $user = $dahra->getUser();
+        $user->setPassword($passwordHasher->hashPassword($user, $requestData['password']));
+    }
 
     $entityManager->flush();
-
-    $responseData = $serializer->serialize($dahra, 'json');
-    return new JsonResponse($responseData, JsonResponse::HTTP_OK, [], true);
+    return new JsonResponse(['message' => 'Les informations du Dahra ont été mises à jour avec succès'], Response::HTTP_OK);
 }
 
 /**
@@ -274,32 +332,38 @@ public function supprimerDahra(EntityManagerInterface $em, $id,Security $securit
 
 
 /**
+ * Ajouter un nouveau Talibe à un Dahra par Admin.
+ * 
  * @OA\Post(
  *     path="/api/ajouter-talibe",
- *     summary="Ajouter un Talibe",
- *     description="Permet à un administrateur d'ajouter un nouveau Talibe.",
+ *     summary="Ajouter un Talibe à un Dahra Par un Admin",
+ *     description="Permet à un utilisateur avec le rôle Dahra d'ajouter un nouveau Talibe au Dahra.",
  *     @OA\RequestBody(
  *         required=true,
- *         description="Données du Talibe à ajouter",
- *         @OA\JsonContent(
- *             required={"nom", "prenom", "adresse", "age", "situation", "description", "image", "dahra_id"},
- *             @OA\Property(property="nom", type="string", example="Nom du Talibe"),
- *             @OA\Property(property="prenom", type="string", example="Prénom du Talibe"),
- *             @OA\Property(property="adresse", type="string", example="Adresse du Talibe"),
- *             @OA\Property(property="age", type="integer", example=20),
- *             @OA\Property(property="situation", type="string", example="Situation du Talibe"),
- *             @OA\Property(property="description", type="string", example="Description du Talibe"),
- *             @OA\Property(property="image", type="string", example="Lien vers l'image du Talibe"),
- *             @OA\Property(property="dahra_id", type="integer", example=1)
+ *         description="Informations nécessaires pour l'ajout d'un Talibe",
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 required={"nom", "prenom", "age", "adresse", "situation", "description", "datearrivetalibe", "imageFile"},
+ *                 @OA\Property(property="nom", type="string", example="Amadou"),
+ *                 @OA\Property(property="prenom", type="string", example="Diop"),
+ *                 @OA\Property(property="age", type="integer", example=12),
+ *                 @OA\Property(property="adresse", type="string", example="123 Rue de Dakar"),
+ *                 @OA\Property(property="situation", type="string", example="orphelin"),
+ *                 @OA\Property(property="description", type="string", example="Enfant calme et studieux"),
+ *                 @OA\Property(property="datearrivetalibe", type="string", format="date", example="2024-01-01"),
+ *                 @OA\Property(property="imageFile", type="string", format="binary", description="Fichier image à uploader")
+ *             )
  *         )
  *     ),
  *     @OA\Response(
  *         response=201,
- *         description="Talibe ajouté avec succès"
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Données invalides ou ID du Dahra manquant"
+ *         description="Talibe ajouté avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Choukrane vous avez ajouté avec succès un Talibe !"),
+ *             @OA\Property(property="talibeId", type="integer", example=1)
+ *         )
  *     ),
  *     @OA\Response(
  *         response=403,
@@ -308,60 +372,93 @@ public function supprimerDahra(EntityManagerInterface $em, $id,Security $securit
  *     @OA\Response(
  *         response=404,
  *         description="Dahra non trouvé"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 #[Route('/ajouter-talibe', name: 'ajouter_talibe', methods: ['POST'])]
-public function ajouterTalibe(Request $request, EntityManagerInterface $em, ValidatorInterface $validator, SerializerInterface $serializer,Security $security): JsonResponse
+public function ajouterTalibe(Request $request, EntityManagerInterface $entityManager, ValidatorInterface $validator, SerializerInterface $serializer,Security $security,FileUploader $fileUploader): JsonResponse
 {
     
     $user = $security->getUser();
     if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
-    $data = json_decode($request->getContent(), true);
-    $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
-        'prenom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
-        'adresse' => [new Assert\NotBlank()],
-        'age' => [new Assert\NotBlank()],
-        'situation' => [new Assert\NotBlank()],
-        'description' => [new Assert\NotBlank()],
-        'image' => [new Assert\NotBlank()],
-        
-    ]);
-
-    $violations = $validator->validate($data, $constraints);
-    if (count($violations) > 0) {
-        return $this->json(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
-    }
    
-    if (!isset($data['dahra_id']) || empty($data['dahra_id'])) {
-        return new JsonResponse(['message' => 'ID du Dahra manquant'], JsonResponse::HTTP_BAD_REQUEST);
-    }
 
-    $dahra = $em->getRepository(Dahra::class)->find($data['dahra_id']);
+    $dahra = $user->getDahras()->first();
     if (!$dahra) {
         return new JsonResponse(['message' => 'Dahra non trouvé'], JsonResponse::HTTP_NOT_FOUND);
     }
 
-    $talibe = $serializer->deserialize($request->getContent(), Talibe::class, 'json');
+    $data = json_decode($request->getContent(), true);
 
- 
+    $talibe = new Talibe();
+    $talibe->setNom($request->request->get('nom'));
+    $talibe->setPrenom($request->request->get('prenom'));
+    $talibe->setAge($request->request->get('age'));
+    $talibe->setAdresse($request->request->get('adresse'));
+    $talibe->setSituation($request->request->get('situation'));
+    $talibe->setDescription($request->request->get('description'));
+    $talibe->setImage($request->request->get('image') ?? null);
+
+   //  $dateArriveTalibe = \DateTime::createFromFormat('Y-m-d', $request->request->get('datearrivetalibe'));
+    $talibe->setDateArriveTalibe($request->request->get('datearrivetalibe'));
+
+    $talibe->setPresenceTalibe($request->request->get('presencetalibe') ?? 'present');
+
     $talibe->setDahra($dahra);
-
-    $errors = $validator->validate($talibe);
-    if (count($errors) > 0) {
-        return new JsonResponse((string) $errors, JsonResponse::HTTP_BAD_REQUEST);
+    $violations = $validator->validate($talibe);
+    $doublonViolation = $this->validateDoublon($talibe, $entityManager);
+    if ($doublonViolation) {
+        $violations->add($doublonViolation);
     }
 
-    $em->persist($talibe);
-    $em->flush();
+    if (count($violations) > 0) {
+        $errors = [];
+        foreach ($violations as $violation) {
+            $errors[$violation->getPropertyPath()] = $violation->getMessage();
+        }
 
-    return new JsonResponse(['message' => 'Talibe ajouté avec succès'], JsonResponse::HTTP_CREATED);
+        return $this->json(['errors' => $errors], Response::HTTP_BAD_REQUEST);
+    }
+    if ($request->files->has('imageFile')) {
+        $imageFile = $request->files->get('imageFile');
+        if ($imageFile) {
+          
+            $uploadedFilePath = $fileUploader->upload($imageFile);
+            
+        
+            $talibe->setImageFilename($uploadedFilePath);
+        }
+    }
+    $entityManager->persist($talibe);
+    $entityManager->flush();
+
+    return $this->json([
+        'message' => 'Choukrane vous avez ajouté avec succès un Talibe !',
+        'talibeId' => $talibe->getId()
+    ], Response::HTTP_CREATED);
+}
+
+private function validateDoublon(Talibe $talibe, EntityManagerInterface $entityManager): ?ConstraintViolation
+{
+   
+    $existingTalibe = $entityManager->getRepository(Talibe::class)->findOneBy([
+        'nom' => $talibe->getNom(),
+        'prenom' => $talibe->getPrenom(),
+        'age' => $talibe->getAge(),
+    ]);
+
+    if ($existingTalibe && $existingTalibe->getId() !== $talibe->getId()) {
+       
+        $message = sprintf(
+            'Un talibé avec le même nom, prénom et âge existe déjà. Veuillez ajouter quelque chose au prénom pour les différencier.'
+        );
+
+        return new ConstraintViolation($message, null, [], $talibe, 'doublonTalibe', null);
+    }
+
+    return null;
 }
 
 
@@ -388,38 +485,44 @@ public function supprimerTalibe(EntityManagerInterface $em, $id,Security $securi
 }
 
 /**
+ * Modifier les informations d'un Talibe.
+ * 
  * @OA\Put(
  *     path="/api/modifier-talibe/{id}",
- *     summary="Modifier un Talibe",
- *     description="Permet à un administrateur de modifier les informations d'un Talibe existant.",
+ *     summary="Modifier les informations d'un Talibe Par Admin",
+ *     description="Permet à un utilisateur avec le rôle Dahra de modifier les informations d'un Talibe dans le Dahra.",
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
- *         required=true,
  *         description="ID du Talibe à modifier",
+ *         required=true,
  *         @OA\Schema(type="integer")
  *     ),
  *     @OA\RequestBody(
  *         required=true,
- *         description="Données du Talibe à modifier",
- *         @OA\JsonContent(
- *             @OA\Property(property="nom", type="string", example="Nouveau Nom"),
- *             @OA\Property(property="prenom", type="string", example="Nouveau Prénom"),
- *             @OA\Property(property="adresse", type="string", example="Nouvelle Adresse"),
- *             @OA\Property(property="age", type="integer", example=25),
- *             @OA\Property(property="situation", type="string", example="Nouvelle Situation"),
- *             @OA\Property(property="description", type="string", example="Nouvelle Description"),
- *             @OA\Property(property="image", type="string", example="Lien vers la nouvelle image"),
- *             @OA\Property(property="dahra_id", type="integer", example=2)
+ *         description="Informations à modifier pour le Talibe",
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 required={"nom", "prenom", "age", "adresse", "situation", "description", "datearrivetalibe"},
+ *                 @OA\Property(property="nom", type="string", example="Amadou"),
+ *                 @OA\Property(property="prenom", type="string", example="Diop"),
+ *                 @OA\Property(property="age", type="integer", example=12),
+ *                 @OA\Property(property="adresse", type="string", example="123 Rue de Dakar"),
+ *                 @OA\Property(property="situation", type="string", example="orphelin"),
+ *                 @OA\Property(property="description", type="string", example="Enfant calme et studieux"),
+ *                 @OA\Property(property="datearrivetalibe", type="string", format="date", example="2024-01-01"),
+ *                 @OA\Property(property="imageFile", type="string", format="binary", description="Fichier image (optionnel)")
+ *             )
  *         )
  *     ),
  *     @OA\Response(
  *         response=200,
- *         description="Talibe modifié avec succès"
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Données invalides"
+ *         description="Talibe modifié avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Les informations du Talibe ont été modifiées avec succès")
+ *         )
  *     ),
  *     @OA\Response(
  *         response=403,
@@ -427,48 +530,55 @@ public function supprimerTalibe(EntityManagerInterface $em, $id,Security $securi
  *     ),
  *     @OA\Response(
  *         response=404,
- *         description="Talibe ou Dahra non trouvé"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *         description="Talibe non trouvé"
+ *     )
  * )
  */
 #[Route('/modifier-talibe/{id}', name: 'modifier_talibe', methods: ['PUT'])]
-public function modifierTalibe(Request $request, EntityManagerInterface $em, ValidatorInterface $validator, SerializerInterface $serializer, $id,Security $security): JsonResponse
+public function modifierTalibeAdmin(Request $request, EntityManagerInterface  $entityManager, ValidatorInterface $validator, SerializerInterface $serializer, $id,Security $security,FileUploader $fileUploader): JsonResponse
 {
   
     $user = $security->getUser();
     if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
-    $talibe = $em->getRepository(Talibe::class)->find($id);
+    $talibe = $entityManager->getRepository(Talibe::class)->find($id);
 
-    if (!$talibe) {
-        return new JsonResponse(['message' => 'Talibe non trouvé'], JsonResponse::HTTP_NOT_FOUND);
-    }
-
-    $data = json_decode($request->getContent(), true);
-
-    
-    if (isset($data['dahra_id']) && $data['dahra_id'] !== $talibe->getDahra()?->getId()) {
-        $dahra = $em->getRepository(Dahra::class)->find($data['dahra_id']);
-        if (!$dahra) {
-            return new JsonResponse(['message' => 'Dahra non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+        if (!$talibe) {
+            return new JsonResponse(['message' => 'Talibe non trouvé'], JsonResponse::HTTP_NOT_FOUND);
         }
-        $talibe->setDahra($dahra);
-    }
 
-    $serializer->deserialize($request->getContent(), Talibe::class, 'json', ['object_to_populate' => $talibe]);
 
-    $errors = $validator->validate($talibe);
-    if (count($errors) > 0) {
-        return new JsonResponse((string) $errors, JsonResponse::HTTP_BAD_REQUEST);
-    }
+        $talibe->setNom($request->request->get('nom'));
+        $talibe->setPrenom($request->request->get('prenom'));
+        $talibe->setAge($request->request->get('age'));
+        $talibe->setAdresse($request->request->get('adresse'));
+        $talibe->setSituation($request->request->get('situation'));
+        $talibe->setDescription($request->request->get('description'));
+        $talibe->setDateArriveTalibe($request->request->get('datearrivetalibe'));
+        $talibe->setPresenceTalibe($request->request->get('presencetalibe') ?? 'present');
 
-    $em->flush();
+        if ($request->files->has('imageFile')) {
+            $imageFile = $request->files->get('imageFile');
+            if ($imageFile) {
+                $uploadedFilePath = $fileUploader->upload($imageFile);
+                $talibe->setImageFilename($uploadedFilePath);
+            }
+        }
 
-    return new JsonResponse(['message' => 'Talibe modifié avec succès'], JsonResponse::HTTP_OK);
+        $violations = $validator->validate($talibe);
+        if (count($violations) > 0) {
+            $errors = [];
+            foreach ($violations as $violation) {
+                $errors[$violation->getPropertyPath()] = $violation->getMessage();
+            }
+            return $this->json(['errors' => $errors], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+      
+        $entityManager->flush();
+
+        return $this->json(['message' => 'Les informations du Talibe ont été modifiées avec succès'], JsonResponse::HTTP_OK);
 }
 
 /**

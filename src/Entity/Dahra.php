@@ -6,9 +6,14 @@ use App\Entity\User;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\DahraRepository;
 use Doctrine\Common\Collections\Collection;
+use Symfony\Component\HttpFoundation\File\File;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Validator\Constraints as Assert;
+
 
 #[ORM\Entity(repositoryClass: DahraRepository::class)]
+#[Vich\Uploadable]
 class Dahra
 {
     #[ORM\Id]
@@ -42,12 +47,26 @@ class Dahra
     #[ORM\ManyToOne(inversedBy: 'Users')]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $User = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
     
+    #[Vich\UploadableField(mapping: 'dahra_images', fileNameProperty: 'imageFilename')]
+    private ?File $imageFile = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?string $imageFilename = null;
+
+   
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
+
     
     public function __construct()
     {
         $this->talibes = new ArrayCollection();
         $this->faireDons = new ArrayCollection();
+        // $this->imageFilename = null;
+        // $this->imageFile = null;
     }
 
     public function getId(): ?int
@@ -199,4 +218,31 @@ class Dahra
 
         return $this;
     }
+
+    public function setImageFile(?File $imageFile = null): void
+    {
+        $this->imageFile = $imageFile;
+
+        if (null !== $imageFile) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+    }
+
+    public function getImageFile(): ?File
+    {
+        return $this->imageFile;
+    }
+
+    public function setImageFilename(?string $imageFilename): void
+{
+    $this->imageFilename = $imageFilename;
+}
+
+public function getImageFilename(): ?string
+{
+    return $this->imageFilename;
+}
+
+
+
 }

@@ -14,7 +14,7 @@ class RegistrationDonateurTest extends WebTestCase
         $data = [
             'nom' => 'bourama',
             'prenom' => 'bourama',
-            'email' => 'boura14@gmail.com',
+            'email' => 'boura@gmail.com',
             'password' => 'password123',
             'adresse' => 'Pikine',
             'numeroTelephone' => '783718472',
