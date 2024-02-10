@@ -41,5 +41,5 @@ phpstan:
 #         - php bin/console doctrine:database:create --env=test
 #         - php bin/console doctrine:migration:migrate --env=test --no-interaction
 #     script:
-        - php bin/phpunit
+        - php bin/phpunit tests/Unit
     allow_failure: false

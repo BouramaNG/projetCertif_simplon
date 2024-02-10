@@ -14,7 +14,7 @@ class DevenirMarraineTest extends WebTestCase
         $data = [
             'nom' => 'boura',
             'prenom' => 'bounama',
-            'email' => 'bourama12@gmail.com',
+            'email' => 'bourama100@gmail.com',
             'password' => 'password123',
             'adresse' => 'dakar',
             'numeroTelephone' => '783718472',

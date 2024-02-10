@@ -13,24 +13,24 @@ class TalibeTest extends WebTestCase
         $client = static::createClient();
 
         $data = [
-            'nom' => 'NomTest',
-            'prenom' => 'PrenomTest',
-            'age' => 25,
+            'nom' => 'NomTestTest',
+            'prenom' => 'PrenomTestTest',
+            'age' => 30,
             'dahra_id' => 1,
             'adresse' => 'AdresseTest',
             'situation' => 'SituationTest',
             'description' => 'DescriptionTest',
             'image' => 'ImageTest.jpg',
-            'datearrivetalibe' => '2022-01-01', // Assurez-vous que cette clé correspond à ce que votre action attend
+            'datearrivetalibe' => '2022-01-01', 
             'presencetalibe' => 'present',
         ];
 
-        $client->request('POST', 'api/add-talibeTest', [], [], [], json_encode($data));
+        $client->request('POST', '/api/add-talibeTest', [], [], [], json_encode($data));
 
         $this->assertEquals(201, $client->getResponse()->getStatusCode());
         $responseContent = json_decode($client->getResponse()->getContent(), true);
 
-        // Assurez-vous que la réponse contient le message attendu et l'ID du Talibe
+    
         $this->assertArrayHasKey('message', $responseContent);
         $this->assertArrayHasKey('talibeId', $responseContent);
         $this->assertEquals('Choukrane vous avez ajouté avec succès un Talibe !', $responseContent['message']);

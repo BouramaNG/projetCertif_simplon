@@ -666,13 +666,13 @@ public function listerTalibe(EntityManagerInterface $em): JsonResponse
 
 
 #[Route('/lister-dahra', name: 'lister_dahra', methods: ['GET'])]
-public function listerDahra(EntityManagerInterface $em): JsonResponse
+public function listerDahra(EntityManagerInterface $em,Request $request): JsonResponse
 {
     $dahras = $em->getRepository(Dahra::class)->findAll();
 
     $data = [];
     foreach ($dahras as $dahra) {
-        $data[] = [
+        $dahraData = [
             'id' => $dahra->getId(),
             'nom' => $dahra->getNom(),
             'adresse' => $dahra->getAdresse(),
@@ -680,12 +680,15 @@ public function listerDahra(EntityManagerInterface $em): JsonResponse
             'nombreTalibe' => $dahra->getNombreTalibe(),
             'nomOuztas' => $dahra->getNomOuztas(),
             'numeroTelephoneOuztas' => $dahra->getNumeroTelephoneOuztas(),
-           
+            'image' => $request->getSchemeAndHttpHost() . '/uploads/dahras/' . $dahra->getImageFilename(),
         ];
+
+        $data[] = $dahraData;
     }
 
     return new JsonResponse($data, JsonResponse::HTTP_OK);
 }
+
 
 /**
  * @OA\Put(

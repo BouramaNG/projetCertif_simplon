@@ -466,7 +466,7 @@ public function modifierTalibePresence(EntityManagerInterface $entityManager, Ta
  * )
  */
 #[Route('/lister-talibe', name: 'lister_talibe', methods: ['GET'])]
-public function listerTalibe(EntityManagerInterface $em): JsonResponse
+public function listerTalibe(EntityManagerInterface $em,Request $request): JsonResponse
 {
     $talibes = $em->getRepository(Talibe::class)->findAll();
 
@@ -485,7 +485,7 @@ public function listerTalibe(EntityManagerInterface $em): JsonResponse
             'image' => $talibe->getImage(),
             'datearrivetalibe' => $talibe->getDateArriveTalibe(),
             'dahraNom' => $dahraNom,
-            
+            'imageFilename' => $request->getSchemeAndHttpHost() . '/uploads/talibes/' . $talibe->getImageFilename(),
         ];
     }
 
@@ -728,7 +728,7 @@ public function searchTalibe(Request $request, TalibeRepository $talibeRepositor
  */
 
     #[Route('/lister-mes-talibes', name: 'lister_mes_talibes', methods: ['GET'])]
-public function listerMesTalibes(EntityManagerInterface $em, Security $security): JsonResponse
+public function listerMesTalibes(EntityManagerInterface $em, Security $security,Request $request): JsonResponse
 {
     
     $user = $security->getUser();
@@ -759,6 +759,7 @@ public function listerMesTalibes(EntityManagerInterface $em, Security $security)
                 'description' => $talibe->getDescription(),
                 'image' => $talibe->getImage(),
                 'datearrivetalibe' => $talibe->getDateArriveTalibe(),
+                'imageFilename' => $request->getSchemeAndHttpHost() . '/uploads/talibes/' . $talibe->getImageFilename(),
             ];
         }
     }
@@ -830,34 +831,72 @@ public function supprimerTalibe(int $id, EntityManagerInterface $entityManager, 
 
 
 
-#[Route('/add-talibeTest', name: 'add_talibe_to_dahra', methods: ['POST'])]
-public function addTalibeToDahraTest(Request $request, EntityManagerInterface $entityManager, Security $security, ValidatorInterface $validator): Response
+
+
+
+
+#[Route('/dahra', name: 'api_dahra_register', methods: ['POST'])]
+public function register(Request $request, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator, FileUploader $fileUploader): JsonResponse
 {
-    
+    // Décoder les données JSON du corps de la requête
     $data = json_decode($request->getContent(), true);
+    
+    // Valider les données
+    $constraints = new Assert\Collection([
+        'email' => [new Assert\NotBlank(), new Assert\Email()],
+        'password' => [new Assert\NotBlank()],
+        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'region' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'numeroTelephone' => [
+            new Assert\NotBlank(),
+            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
+        ],
+        'numeroTelephoneOuztas' => [
+            new Assert\NotBlank(),
+            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
+        ],
+        'nombreTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'integer'])],
+    ]);
 
-    $talibe = new Talibe();
-    $talibe->setNom($data['nom']);
-    $talibe->setPrenom($data['prenom']);
-    $talibe->setAge($data['age']);
-    $talibe->setAdresse($data['adresse']);
-    $talibe->setSituation($data['situation']);
-    $talibe->setDescription($data['description']);
-    $talibe->setImage($data['image'] ?? null);
+    $violations = $validator->validate($data, $constraints);
 
-    $dateArriveTalibe = \DateTime::createFromFormat('Y-m-d', $data['datearrivetalibe']);
-    $talibe->setDateArriveTalibe($dateArriveTalibe);
+    if (count($violations) > 0) {
+        return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+    }
 
-    $talibe->setPresenceTalibe($data['presencetalibe'] ?? 'present');
+    // Créer et enregistrer l'utilisateur
+    $user = new User();
+    $user->setEmail($data['email']);
+    $user->setNumeroTelephone($data['numeroTelephone']);
+    $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
+    $user->setRoles(['ROLE_DAHRA']);
+    $user->setIsActive(false);
 
-   
-    $entityManager->persist($talibe);
+    // Créer et enregistrer le Dahra
+    $dahra = new Dahra();
+    $dahra->setNom($data['nom']);
+    $dahra->setNomOuztas($data['nomOuztas']);
+    $dahra->setAdresse($data['adresse']);
+    $dahra->setRegion($data['region']);
+    $dahra->setNumeroTelephoneOuztas($data['numeroTelephoneOuztas']);
+    $dahra->setNombreTalibe($data['nombreTalibe']);
+    $dahra->setUser($user);
+
+    // Gérer l'upload de l'image si elle est présente
+    if (isset($data['imageFile'])) {
+        $uploadedFilePath = $fileUploader->upload($data['imageFile']);
+        $dahra->setImageFilename($uploadedFilePath);
+    }
+
+    // Persist et flush les entités
+    $entityManager->persist($user);
+    $entityManager->persist($dahra);
     $entityManager->flush();
 
-    return $this->json([
-        'message' => 'Choukrane vous avez ajouté avec succès un Talibe !',
-        'talibeId' => $talibe->getId()
-    ], Response::HTTP_CREATED);
+    // Serialize le Dahra et retourne la réponse
+    $responseData = $serializer->serialize($dahra, 'json');
+    return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
 }
-
 }

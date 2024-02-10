@@ -11,7 +11,7 @@ class LoginTest extends WebTestCase
         $client = static::createClient();
 
         $data = [
-            'email' => 'ngombourama65@gmail.com',
+            'email' => 'ngombourama18@gmail.com',
             'password' => 'password123',
         ];
 

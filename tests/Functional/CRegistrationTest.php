@@ -9,10 +9,14 @@ class DevenirDahraTest extends WebTestCase
 {
     public function testRegisterDahra()
     {
+
+
+        
         $client = static::createClient();
 
+       
         $data = [
-            'email' => 'ngombourama18@gmail.com',
+            'email' => 'ngombourama100@gmail.com',
             'password' => 'password123',
             'numeroTelephone' => '771234567',
             'nom' => 'sahih Bouhary',
@@ -23,13 +27,24 @@ class DevenirDahraTest extends WebTestCase
             'nombreTalibe' => 100
         ];
 
-        $client->request('POST', '/api/register/dahra', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($data));
-
+     
+        $client->request(
+            'POST',
+            '/api/dahra',
+            [],
+            [], 
+            [], 
+            json_encode($data) 
+            
+        );
+        
+     
         $this->assertResponseStatusCodeSame(201); 
+
+        // Vérifiez le contenu de la réponse JSON
         $this->assertJson($client->getResponse()->getContent());
         $responseData = json_decode($client->getResponse()->getContent(), true);
         $this->assertEquals($data['nom'], $responseData['nom']);
-      
     }
 
     public function testRegisterDonateur()
@@ -39,7 +54,7 @@ class DevenirDahraTest extends WebTestCase
         $data = [
             'nom' => 'bourama',
             'prenom' => 'bourama',
-            'email' => 'bourama@gmail.com',
+            'email' => 'bourama300@gmail.com',
             'password' => 'password123',
             'adresse' => 'Pikine',
             'numeroTelephone' => '783718472',
@@ -61,7 +76,7 @@ class DevenirDahraTest extends WebTestCase
         $data = [
             'nom' => 'boura',
             'prenom' => 'bounama',
-            'email' => 'bourama12@gmail.com',
+            'email' => 'bourama140@gmail.com',
             'password' => 'password123',
             'adresse' => 'dakar',
             'numeroTelephone' => '783718472',
