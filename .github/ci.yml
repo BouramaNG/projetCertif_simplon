@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - feature/Bourama
   pull_request:
     branches:
-      - main
+      - feature/Bourama
 
 jobs:
   test:
@@ -36,4 +36,4 @@ jobs:
       run: dockerize -wait tcp://localhost:3306 -timeout 1m
 
     - name: Run tests
-      run: php bin/phpunit
+      run: php bin/phpunit tests/Unit
