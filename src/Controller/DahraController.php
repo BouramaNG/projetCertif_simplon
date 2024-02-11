@@ -30,7 +30,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
  * @OA\Post(
- *     path="/api/register/dahra",
+ *     path="/api/inscription/dahra",
  *     summary="Enregistrer un nouveau Dahra",
  *     description="Permet d'enregistrer un nouveau Dahra avec les informations fournies.",
  *     @OA\RequestBody(
@@ -79,7 +79,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 class DahraController extends AbstractController
 {
  
-    #[Route('/register/dahra', name: 'api_dahra_register', methods: ['POST'])]
+#[Route('/inscription/dahra', name: 'api_dahra_register', methods: ['POST'])]
  
     public function registerDahra(Request $request, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator, FileUploader $fileUploader): JsonResponse
 {
@@ -474,6 +474,12 @@ public function listerTalibe(EntityManagerInterface $em,Request $request): JsonR
     foreach ($talibes as $talibe) {
         $dahra = $talibe->getDahra();
         $dahraNom = $dahra ? $dahra->getNom() : null;
+        $dateArriveTalibe = $talibe->getDateArriveTalibe();
+
+        // Formater la date d'arrivée au format Y-m-d
+        $formattedDateArriveTalibe = $dateArriveTalibe ? $dateArriveTalibe->format('Y-m-d') : null;
+        $imageFilename = $dahra->getImageFilename();
+        $image = $imageFilename ? '/uploads/dahras/' . $imageFilename : null;
         $data[] = [
             'id' => $talibe->getId(),
             'prenom' => $talibe->getPrenom(),
@@ -483,9 +489,9 @@ public function listerTalibe(EntityManagerInterface $em,Request $request): JsonR
             'situation' => $talibe->getSituation(),
             'description' => $talibe->getDescription(),
             'image' => $talibe->getImage(),
-            'datearrivetalibe' => $talibe->getDateArriveTalibe(),
+            'datearrivetalibe' => $formattedDateArriveTalibe,
             'dahraNom' => $dahraNom,
-            'imageFilename' => $request->getSchemeAndHttpHost() . '/uploads/talibes/' . $talibe->getImageFilename(),
+            'imageFilename' => $image,
         ];
     }
 
@@ -834,7 +840,52 @@ public function supprimerTalibe(int $id, EntityManagerInterface $entityManager, 
 
 
 
-
+/**
+ * @OA\Post(
+ *     path="/api/inscription/dahra",
+ *     summary="Enregistrer un nouveau Dahra",
+ *     description="Permet d'enregistrer un nouveau Dahra avec les informations fournies.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         description="Données nécessaires pour l'enregistrement d'un Dahra",
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 required={"email", "password", "nom", "nomOuztas", "adresse", "region", "numeroTelephoneOuztas","numeroTelephone", "nombreTalibe", "imageFile"},
+ *                 @OA\Property(property="email", type="string", format="email", example="contact@gmail.com"),
+ *                 @OA\Property(property="numeroTelephone", type="string", example="783718472"),
+ *                 @OA\Property(property="password", type="string", format="password", example="Passer123"),
+ *                 @OA\Property(property="nom", type="string", example="Dahra Al Azhar"),
+ *                 @OA\Property(property="nomOuztas", type="string", example="Cheikh Modou"),
+ *                 @OA\Property(property="adresse", type="string", example="Marabouts"),
+ *                 @OA\Property(property="region", type="string", example="Dakar"),
+ *                 @OA\Property(property="numeroTelephoneOuztas", type="string", example="783718472"),
+ *                 @OA\Property(property="nombreTalibe", type="integer", example=100),
+ *                 @OA\Property(property="imageFile", type="string", format="binary", description="Fichier image du Dahra")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=201,
+ *         description="Dahra enregistré avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="id", type="integer", example=1),
+ *             @OA\Property(property="nom", type="string", example="Dahra Al Azhar"),
+ *             @OA\Property(property="region", type="string", example="Dakar"),
+ *            
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Données invalides fournies"
+ *     ),
+ *     security={
+ *         {"Bearer": {}}
+ *     }
+ * )
+ * @IgnoreAnnotation("Security")
+ */
 #[Route('/dahra', name: 'api_dahra_register', methods: ['POST'])]
 public function register(Request $request, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator, FileUploader $fileUploader): JsonResponse
 {

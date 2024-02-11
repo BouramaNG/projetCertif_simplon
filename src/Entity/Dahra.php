@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\File\File;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints as Assert;
-
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: DahraRepository::class)]
 #[Vich\Uploadable]
@@ -22,18 +22,23 @@ class Dahra
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["dahra"])]
     private ?string $nom = null;
-
     #[ORM\Column(length: 255)]
+    #[Groups(["dahra"])]
     private ?string $adresse = null;
+  
 
     #[ORM\Column(length: 255)]
+    #[Groups(["dahra"])]
     private ?string $region = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["dahra"])]
     private ?string $nomOuztas = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["dahra"])]
     private ?string $numeroTelephoneOuztas = null;
 
     #[ORM\OneToMany(mappedBy: 'Dahra', targetEntity: Talibe::class, orphanRemoval: true)]
@@ -43,6 +48,7 @@ class Dahra
     private Collection $faireDons;
 
     #[ORM\Column]
+    #[Groups(["dahra"])]
     private ?int $nombreTalibe = null;
     #[ORM\ManyToOne(inversedBy: 'Users')]
     #[ORM\JoinColumn(nullable: false)]
@@ -54,6 +60,7 @@ class Dahra
     private ?File $imageFile = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(["dahra"])]
     private ?string $imageFilename = null;
 
    

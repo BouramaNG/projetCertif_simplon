@@ -672,6 +672,8 @@ public function listerDahra(EntityManagerInterface $em,Request $request): JsonRe
 
     $data = [];
     foreach ($dahras as $dahra) {
+        $imageFilename = $dahra->getImageFilename();
+        $image = $imageFilename ? '/uploads/dahras/' . $imageFilename : null;
         $dahraData = [
             'id' => $dahra->getId(),
             'nom' => $dahra->getNom(),
@@ -680,7 +682,7 @@ public function listerDahra(EntityManagerInterface $em,Request $request): JsonRe
             'nombreTalibe' => $dahra->getNombreTalibe(),
             'nomOuztas' => $dahra->getNomOuztas(),
             'numeroTelephoneOuztas' => $dahra->getNumeroTelephoneOuztas(),
-            'image' => $request->getSchemeAndHttpHost() . '/uploads/dahras/' . $dahra->getImageFilename(),
+            'image' => $image,
         ];
 
         $data[] = $dahraData;
@@ -960,8 +962,12 @@ public function listeRoles(EntityManagerInterface $entityManager): JsonResponse
  */
 
 #[Route('/admin/activate/dahra/{id}', name: 'admin_activate_dahra', methods: ['POST'])]
-public function activateDahra(int $id, EntityManagerInterface $entityManager): JsonResponse
+public function activateDahra(int $id, EntityManagerInterface $entityManager,Security $security): JsonResponse
 {
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
     $user = $entityManager->getRepository(User::class)->find($id);
 
     if (!$user) {
@@ -1106,6 +1112,8 @@ public function showResetPasswordForm(Request $request): Response
      $this->addFlash('success', 'Mot de passe réinitialisé avec succès');
      return $this->redirectToRoute('reset-password-form'); 
  }
+
+
 
 
 

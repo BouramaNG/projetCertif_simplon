@@ -86,7 +86,14 @@ $user->setRoles(['ROLE_DONATEUR']);
     $em->persist($user);
     $em->flush();
 
-    return $this->json(['message' => 'Inscription Donateur avec succès'], JsonResponse::HTTP_CREATED);
+    $responseData = [
+        'nom' => $user->getNom(),
+        'prenom' => $user->getPrenom(),
+        'adresse' => $user->getAdresse(),
+        'message' => 'Inscription du donateur réussie',
+    ];
+
+    return $this->json($responseData, JsonResponse::HTTP_CREATED);
 }
 
 
@@ -242,7 +249,14 @@ $user->setRoles(['ROLE_MARRAINE']);
 $em->persist($user);
 $em->flush();
 
-return $this->json(['message' => 'Inscription Marraine|Parraine avec succès'], JsonResponse::HTTP_CREATED);
+$responseData = [
+    'nom' => $user->getNom(),
+    'prenom' => $user->getPrenom(),
+    'adresse' => $user->getAdresse(),
+    'message' => 'Inscription du Marraine réussie',
+];
+
+return $this->json($responseData, JsonResponse::HTTP_CREATED);
 }
 
 
@@ -402,7 +416,14 @@ public function ajouterUtilisateurAdmin(EntityManagerInterface $em, Request $req
     $em->persist($user);
     $em->flush();
 
-    return $this->json(['message' => 'Admin ajouté avec succès'], JsonResponse::HTTP_CREATED);
+    $responseData = [
+        'nom' => $user->getNom(),
+        'prenom' => $user->getPrenom(),
+        'adresse' => $user->getAdresse(),
+        'message' => 'Inscription du Admin réussie',
+    ];
+
+    return $this->json($responseData, JsonResponse::HTTP_CREATED);
 }
 
 
