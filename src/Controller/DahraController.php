@@ -198,10 +198,7 @@ class DahraController extends AbstractController
  *     @OA\Response(
  *         response=400,
  *         description="Erreur de validation ou problème lors de la mise à jour"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -728,8 +725,8 @@ public function searchTalibe(Request $request, TalibeRepository $talibeRepositor
  *             )
  *         )
  *     ),
- *     @OA\Response(response=403, description="Accès non autorisé"),
- *     security={{"bearerAuth": {}}}
+ *     @OA\Response(response=403, description="Accès non autorisé")
+ *   
  * )
  */
 
@@ -799,10 +796,7 @@ public function listerMesTalibes(EntityManagerInterface $em, Security $security,
  *     @OA\Response(
  *         response=404,
  *         description="Talibé non trouvé"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 #[Route('/dahra/supprimer-talibe/{id}', name:'supprimer_talibe', methods:['DELETE'])]

@@ -60,11 +60,11 @@ class RegistrationController extends AbstractController
     $data = json_decode($request->getContent(), true);
 
     $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
-        'prenom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
+        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'email' => [new Assert\NotBlank(), new Assert\Email()],
         'password' => [new Assert\NotBlank()],
-        'adresse' => [new Assert\NotBlank()],
+        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
     ]);
 
@@ -137,10 +137,7 @@ $user->setRoles(['ROLE_DONATEUR']);
  *     @OA\Response(
  *         response=404,
  *         description="Donateur non trouvé"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -149,10 +146,10 @@ public function updateDonateur(int $id, Request $request, UserPasswordHasherInte
 {
     $data = json_decode($request->getContent(), true);
     $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
-        'prenom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
+        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'email' => [new Assert\NotBlank(), new Assert\Email()],
-        'adresse' => [new Assert\NotBlank()],
+        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
         'password' => [new Assert\NotBlank()],  // Ajoutez la contrainte directement au tableau associé au champ 'password'
     ]);
@@ -202,8 +199,8 @@ public function updateDonateur(int $id, Request $request, UserPasswordHasherInte
  *             @OA\Property(property="email", type="string", format="email", example="jean.dupont@example.com"),
  *             @OA\Property(property="password", type="string", example="yourpassword"),
  *             @OA\Property(property="adresse", type="string", example="123 rue de la Paix"),
- *             @OA\Property(property="niveauEtude", type="string", example="Master en informatique"),
- *             @OA\Property(property="dateNaissance", type="string", format="date", example="1990-01-01")
+ *             @OA\Property(property="numeroTelephone", type="string", example="775003108")
+ *            
  *         )
  *     ),
  *     @OA\Response(
@@ -223,11 +220,11 @@ public function devenirMarraine(EntityManagerInterface $em, Request $request, Us
 $data = json_decode($request->getContent(), true);
 
 $constraints = new Assert\Collection([
-    'nom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
-    'prenom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
+    'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+    'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
     'email' => [new Assert\NotBlank(), new Assert\Email()],
     'password' => [new Assert\NotBlank()],
-    'adresse' => [new Assert\NotBlank()],
+    'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
     'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
 ]);
 
@@ -300,10 +297,7 @@ return $this->json($responseData, JsonResponse::HTTP_CREATED);
  *     @OA\Response(
  *         response=404,
  *         description="Marraine non trouvée"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -313,10 +307,10 @@ public function modifierMarraine(int $id, Request $request, UserPasswordHasherIn
     $data = json_decode($request->getContent(), true);
 
     $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
-        'prenom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4])],
+        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'email' => [new Assert\NotBlank(), new Assert\Email()],
-        'adresse' => [new Assert\NotBlank()],
+        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
         'password' => [new Assert\NotBlank()],
     ]);

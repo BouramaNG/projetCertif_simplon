@@ -205,10 +205,7 @@ return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
  *     @OA\Response(
  *         response=400,
  *         description="Erreur de validation ou problème lors de la mise à jour"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -303,10 +300,7 @@ public function modifierDahra(int $id, Request $request,FileUploader $fileUpload
  *     @OA\Response(
  *         response=404,
  *         description="Dahra non trouvée"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -604,10 +598,7 @@ public function modifierTalibeAdmin(Request $request, EntityManagerInterface  $e
  *                 @OA\Property(property="dahraNom", type="string", example="Nom Dahra")
  *             )
  *         )
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 #[Route('/lister-talibe', name: 'lister_talibe', methods: ['GET'])]
@@ -657,10 +648,7 @@ public function listerTalibe(EntityManagerInterface $em): JsonResponse
  *                 @OA\Property(property="numeroTelephoneOuztas", type="string", example="+221123456789"),
  *             )
  *         )
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -729,10 +717,7 @@ public function listerDahra(EntityManagerInterface $em,Request $request): JsonRe
  *     @OA\Response(
  *         response=403,
  *         description="Accès refusé"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -806,10 +791,7 @@ public function modifierStatutParrainage(Request $request, EntityManagerInterfac
  *     @OA\Response(
  *         response=403,
  *         description="Accès refusé"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -869,10 +851,7 @@ public function modifierStatutDon(int $id, Request $request, EntityManagerInterf
  *     @OA\Response(
  *         response=403,
  *         description="Accès refusé"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */
 
@@ -956,8 +935,8 @@ public function listeRoles(EntityManagerInterface $entityManager): JsonResponse
  *             @OA\Property(property="message", type="string", example="Dahra activé avec succès")
  *         )
  *     ),
- *     @OA\Response(response=404, description="Utilisateur non trouvé"),
- *     security={{"bearerAuth": {}}}
+ *     @OA\Response(response=404, description="Utilisateur non trouvé")
+ *     
  * )
  */
 

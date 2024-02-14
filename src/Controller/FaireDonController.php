@@ -49,10 +49,8 @@ use OpenApi\Annotations as OA;
  *     @OA\Response(
  *         response=401,
  *         description="Utilisateur non connecté"
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
+ *    
  * )
  */
 #[Route('/api', name: 'api_')]
@@ -65,10 +63,13 @@ class FaireDonController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
         $user = $security->getUser();
-    
-        if (!$user) {
-            return new JsonResponse(['message' => 'Utilisateur non connecté'], JsonResponse::HTTP_UNAUTHORIZED);
+        if (!$user || !in_array('ROLE_DONATEUR', $user->getRoles())) {
+            return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
         }
+    
+        // if (!$user) {
+        //     return new JsonResponse(['message' => 'Utilisateur non connecté'], JsonResponse::HTTP_UNAUTHORIZED);
+        // }
     
         $faireDon = new FaireDon();
         $faireDon->setDate(new \DateTime());
@@ -97,7 +98,8 @@ class FaireDonController extends AbstractController
     
         return new JsonResponse(['message' => 'Don effectué avec succès'], JsonResponse::HTTP_CREATED);
     }
-   /**
+
+/**
  * @OA\Get(
  *     path="/api/liste-dons",
  *     summary="Liste des dons",
@@ -134,10 +136,7 @@ class FaireDonController extends AbstractController
  *                 )
  *             )
  *         )
- *     ),
- *     security={
- *         {"bearerAuth": {}}
- *     }
+ *     )
  * )
  */ 
 
