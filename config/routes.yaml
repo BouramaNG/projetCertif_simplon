@@ -1,0 +1,19 @@
+controllers:
+  resource: '../src/Controller/'
+  type: attribute
+
+app.swagger_ui:
+  path: /api/doc
+  methods: GET
+  defaults: { _controller: nelmio_api_doc.controller.swagger_ui }
+
+show_reset_password_form:
+  path: '/reset-password-form'
+  controller: 'App\Controller\AdminController::showResetPasswordForm'
+  methods: ['GET']
+
+reset_password:
+  path: '/reset-password'
+  controller: 'App\Controller\AdminController::resetPassword'
+  methods: ['POST']
+

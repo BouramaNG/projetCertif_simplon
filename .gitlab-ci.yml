@@ -1,0 +1,25 @@
+image: jakzal/phpqa:php8.1
+
+before_script:
+    - composer install
+
+cache:
+    paths:
+        - vendor/
+
+stages:
+    
+    - CodingStandards
+    - UnitTests
+
+
+
+phpstan:
+    stage: CodingStandards
+    script:
+        - phpstan analyse ./src
+    allow_failure: false
+
+
+        - php bin/phpunit tests/Unit
+    allow_failure: false

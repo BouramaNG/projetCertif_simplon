@@ -1,0 +1,45 @@
+security:
+    enable_authenticator_manager: true
+    password_hashers:
+        App\Entity\User: 'auto'
+
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email # ou username, selon le champ utilisé pour l'authentification
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        login:
+            pattern:  ^/api/login
+            stateless: true
+            json_login:
+                check_path: /api/login
+                username_path: email
+                password_path: password
+                success_handler: app.security.authentication_success_handler
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        api: # Assurez-vous que cette section est correctement indentée
+            pattern: ^/api
+            stateless: true
+            jwt: ~
+
+    access_control:
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/inscrire-donateur, roles: PUBLIC_ACCESS }
+        - { path: ^/api/inscrire-admin, roles: PUBLIC_ACCESS }
+        - { path: ^/api/ajouter-dahra, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/add-talibeTest, roles: PUBLIC_ACCESS }
+        - { path: ^/api/creer-parrainage, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/faire-don, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/newsletter, roles: IS_AUTHENTICATED_FULLY}
+        - { path: ^/api/demande-reset-password, roles: PUBLIC_ACCESS }
+        - { path: ^/api/recherche-dahra, roles: PUBLIC_ACCESS }
+        - { path: ^/api/devenir-marraine, roles: PUBLIC_ACCESS }
+        - { path: ^/api/faire-donTest, roles: PUBLIC_ACCESS }

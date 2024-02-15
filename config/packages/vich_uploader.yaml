@@ -1,0 +1,10 @@
+vich_uploader:
+    db_driver: orm
+
+    metadata:
+        type: attribute
+    mappings:
+       dahra_images:
+           uri_prefix: /uploads/dahras
+           upload_destination: '%kernel.project_dir%/public/uploads/dahras'
+           namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
