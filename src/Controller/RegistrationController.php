@@ -5,12 +5,13 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Marraine;
 use OpenApi\Annotations as OA;
+use App\Repository\RoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Security;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
+use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -54,47 +55,57 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 class RegistrationController extends AbstractController
 {
     #[Route('/inscrire-donateur', name: 'inscrire_donateur', methods: ['POST'])]
-   
-    public function register(EntityManagerInterface $em, Request $request, UserPasswordHasherInterface $passwordHasher, ValidatorInterface $validator): JsonResponse
-{
-    $data = json_decode($request->getContent(), true);
-
-    $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
-        'password' => [new Assert\NotBlank()],
-        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
-    ]);
-
-    $violations = $validator->validate($data, $constraints);
-    if (count($violations) > 0) {
-        return $this->json(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+    public function register(EntityManagerInterface $em, Request $request, UserPasswordHasherInterface $passwordHasher, ValidatorInterface $validator, RoleRepository $roleRepository): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+    
+        $constraints = new Assert\Collection([
+            'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+            'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+            'email' => [new Assert\NotBlank(), new Assert\Email()],
+            'password' => [new Assert\NotBlank()],
+            'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+            'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
+        ]);
+    
+        $violations = $validator->validate($data, $constraints);
+        if (count($violations) > 0) {
+            return $this->json(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+        }
+    
+        // Récupérer le rôle "DONATEUR" depuis la base de données
+        $roleDonateur = $roleRepository->findOneBy(['nomRole' => 'DONATEUR']);
+    
+        if (!$roleDonateur) {
+            return $this->json(['error' => 'Le rôle "DONATEUR" n\'existe pas.'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+    
+        $user = new User();
+        $user->setNom($data['nom']);
+        $user->setPrenom($data['prenom']);
+        $user->setEmail($data['email']);
+        $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
+        $user->setAdresse($data['adresse']);
+        $user->setNumeroTelephone($data['numeroTelephone']);
+        $user->setRoleEntity($roleDonateur);
+        $user->setRoles(['ROLE_DONATEUR']);
+    
+        $em->persist($user);
+        $em->flush();
+    
+        $responseData = [
+            'email' => $user->getEmail(),
+            'nom' => $user->getNom(),
+            'prenom' => $user->getPrenom(),
+            'adresse' => $user->getAdresse(),
+            'numeroTelephone' => $user->getNumeroTelephone(),
+            'message' => 'Inscription du donateur réussie',
+        ];
+    
+        return $this->json($responseData, JsonResponse::HTTP_CREATED);
     }
+    
 
-    $user = new User();
-    $user->setNom($data['nom']);
-    $user->setPrenom($data['prenom']);
-    $user->setEmail($data['email']);
-    $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
-    $user->setAdresse($data['adresse']);
-    $user->setNumeroTelephone($data['numeroTelephone']);
-$user->setRoles(['ROLE_DONATEUR']);
-
-
-    $em->persist($user);
-    $em->flush();
-
-    $responseData = [
-        'nom' => $user->getNom(),
-        'prenom' => $user->getPrenom(),
-        'adresse' => $user->getAdresse(),
-        'message' => 'Inscription du donateur réussie',
-    ];
-
-    return $this->json($responseData, JsonResponse::HTTP_CREATED);
-}
 
 
 /**
@@ -151,7 +162,7 @@ public function updateDonateur(int $id, Request $request, UserPasswordHasherInte
         'email' => [new Assert\NotBlank(), new Assert\Email()],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
-        'password' => [new Assert\NotBlank()],  // Ajoutez la contrainte directement au tableau associé au champ 'password'
+        'password' => [new Assert\NotBlank()],  
     ]);
 
     $violations = $validator->validate($data, $constraints);
@@ -214,47 +225,55 @@ public function updateDonateur(int $id, Request $request, UserPasswordHasherInte
  * )
  */
 #[Route('/devenir-marraine', name: 'devenir_marraine', methods: ['POST'])]
-   
-public function devenirMarraine(EntityManagerInterface $em, Request $request, UserPasswordHasherInterface $passwordHasher, ValidatorInterface $validator): JsonResponse
+public function devenirMarraine(EntityManagerInterface $em, Request $request, UserPasswordHasherInterface $passwordHasher, ValidatorInterface $validator, RoleRepository $roleRepository): JsonResponse
 {
-$data = json_decode($request->getContent(), true);
+    $data = json_decode($request->getContent(), true);
 
-$constraints = new Assert\Collection([
-    'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-    'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-    'email' => [new Assert\NotBlank(), new Assert\Email()],
-    'password' => [new Assert\NotBlank()],
-    'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-    'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
-]);
+    $constraints = new Assert\Collection([
+        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+        'email' => [new Assert\NotBlank(), new Assert\Email()],
+        'password' => [new Assert\NotBlank()],
+        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
+        'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
+    ]);
 
-$violations = $validator->validate($data, $constraints);
-if (count($violations) > 0) {
-    return $this->json(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+    $violations = $validator->validate($data, $constraints);
+    if (count($violations) > 0) {
+        return $this->json(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+    }
+
+    $roleMarraine = $roleRepository->findOneBy(['nomRole' => 'MARRAINE']);
+
+    if (!$roleMarraine) {
+        return $this->json(['error' => 'Le rôle "MARRAINE" n\'existe pas.'], JsonResponse::HTTP_BAD_REQUEST);
+    }
+
+    $user = new User();
+    $user->setNom($data['nom']);
+    $user->setPrenom($data['prenom']);
+    $user->setEmail($data['email']);
+    $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
+    $user->setAdresse($data['adresse']);
+    $user->setNumeroTelephone($data['numeroTelephone']);
+    $user->setRoleEntity($roleMarraine);
+    $user->setRoles(['ROLE_MARRAINE']);
+
+    $em->persist($user);
+    $em->flush();
+
+    $responseData = [
+        'email' => $user->getEmail(),
+        'nom' => $user->getNom(),
+        'prenom' => $user->getPrenom(),
+        'adresse' => $user->getAdresse(),
+        'numeroTelephone' => $user->getNumeroTelephone(),
+        'message' => 'Inscription de la marraine réussie',
+    ];
+
+    return $this->json($responseData, JsonResponse::HTTP_CREATED);
 }
 
-$user = new User();
-$user->setNom($data['nom']);
-$user->setPrenom($data['prenom']);
-$user->setEmail($data['email']);
-$user->setPassword($passwordHasher->hashPassword($user, $data['password']));
-$user->setAdresse($data['adresse']);
-$user->setNumeroTelephone($data['numeroTelephone']);
-$user->setRoles(['ROLE_MARRAINE']);
-
-
-$em->persist($user);
-$em->flush();
-
-$responseData = [
-    'nom' => $user->getNom(),
-    'prenom' => $user->getPrenom(),
-    'adresse' => $user->getAdresse(),
-    'message' => 'Inscription du Marraine réussie',
-];
-
-return $this->json($responseData, JsonResponse::HTTP_CREATED);
-}
 
 
 /**
@@ -411,9 +430,10 @@ public function ajouterUtilisateurAdmin(EntityManagerInterface $em, Request $req
     $em->flush();
 
     $responseData = [
-        'nom' => $user->getNom(),
-        'prenom' => $user->getPrenom(),
-        'adresse' => $user->getAdresse(),
+        'email' => $user->getEmail(),
+    'nom' => $user->getNom(),
+    'prenom' => $user->getPrenom(),
+    'adresse' => $user->getAdresse(),
         'message' => 'Inscription du Admin réussie',
     ];
 

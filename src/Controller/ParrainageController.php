@@ -5,8 +5,10 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Talibe;
 use App\Entity\Parrainage;
-use OpenApi\Annotations as OA;
 use App\Service\FileUploader;
+use OpenApi\Annotations as OA;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mailer\MailerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Security;
@@ -49,7 +51,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class ParrainageController extends AbstractController
 {
     #[Route('/creer-parrainage', name: 'creer_parrainage', methods: ['POST'])]
-    public function creerParrainage(Request $request, EntityManagerInterface $em, SerializerInterface $serializer, ValidatorInterface $validator, Security $security): JsonResponse
+    public function creerParrainage(Request $request, EntityManagerInterface $em, SerializerInterface $serializer, ValidatorInterface $validator, Security $security,MailerInterface $mailer): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         
@@ -109,9 +111,68 @@ class ParrainageController extends AbstractController
     
         $em->persist($parrainage);
         $em->flush();
+        $marraine = $parrainage->getUser();
+
+        if ($marraine && $marraine->getEmail()) {
+            $email = (new Email())
+                ->from('ngombourama@gmail.com')
+                ->to($marraine->getEmail())
+                ->subject('Confirmation de parrainage')
+                ->html('<p>Votre parrainage est en attente de confirmation. L\'admin vas vous contacter pour la confirmation du parrainage</p>');
+        
+            $mailer->send($email);
+        }
     
         return new JsonResponse(['message' => 'Parrainage créé avec succès', 'nom_du_dahra' => $nomDuDahra], JsonResponse::HTTP_CREATED);
     }
+
+    /**
+ * @OA\Get(
+ *     path="/api/liste-talibes-parraines",
+ *     summary="Liste des talibés parrainés par la marraine",
+ *     description="Permet de récupérer la liste des talibés parrainés par la marraine authentifiée.",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des talibés parrainés",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 type="object",
+ *                 @OA\Property(property="id", type="integer", example="1"),
+ *                 @OA\Property(property="nom", type="string", example="Talibé 1"),
+ *                 @OA\Property(property="prenom", type="string", example="Prenom Talibé 1"),
+ *                 @OA\Property(property="date_parrainage", type="string", format="date-time", example="2024-02-20T12:00:00Z")
+ *             )
+ *         )
+ *     )
+ * )
+ */
+#[Route('/lister_parrainage', name: 'lister_parrainage', methods: ['GET'])]
+public function listeTalibesParraines(Request $request, EntityManagerInterface $em, SerializerInterface $serializer, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_MARRAINE', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+    $parrainages = $em->getRepository(Parrainage::class)->findBy(['user' => $user]);
+
+    $results = [];
+    foreach ($parrainages as $parrainage) {
+        $talibe = $parrainage->getTalibe();
+        $dahra = $talibe->getDahra();
+
+        $results[] = [
+            'nom_talibe' => $talibe->getNom(),
+            'prenom_talibe' => $talibe->getPrenom(),
+            'nom_dahra' => $dahra->getNom(),
+            'adresse_dahra' => $dahra->getAdresse(),
+        ];
+    }
+
+    return new JsonResponse($results, JsonResponse::HTTP_OK);
+}
+
 
 
 

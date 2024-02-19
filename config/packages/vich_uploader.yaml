@@ -6,5 +6,5 @@ vich_uploader:
     mappings:
        dahra_images:
            uri_prefix: /uploads/dahras
-           upload_destination: '%kernel.project_dir%/public/uploads/dahras'
+           upload_destination: '%kernel.project_dir%/public/uploads'
            namer: Vich\UploaderBundle\Naming\SmartUniqueNamer

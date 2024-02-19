@@ -16,6 +16,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
@@ -23,7 +24,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     #[ORM\Column]
+    // // #[Groups(["user"])]
     private array $roles = [];
+
 
     /**
      * @var string The hashed password
@@ -44,7 +47,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $adresse = null;
 
     #[ORM\Column(length: 255)]
-   #[Groups(["user"])]
+//    #[Groups(["user"])]
     private ?string $numeroTelephone = null;
 
     #[ORM\OneToMany(mappedBy: 'User', targetEntity: Parrainage::class, orphanRemoval: true)]
@@ -65,6 +68,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 2000, nullable: true)]
     private ?string $resetToken = null;
 
+    #[ORM\ManyToOne(inversedBy: 'users')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Role $RoleEntity = null;
+
     public function __construct()
     {
         $this->parrainages = new ArrayCollection();
@@ -72,6 +79,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->dahras = new ArrayCollection();
         $this->newsletters = new ArrayCollection();
         $this->isActive = false;
+        // $this->roles = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -112,14 +120,58 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return array_unique($roles);
     }
+       
 
-    public function setRoles(array $roles): static
+    public function addRole(string $roleName): static
     {
-        $this->roles = $roles;
-
+        if (!in_array($roleName, $this->roles, true)) {
+            $this->roles[] = $roleName;
+        }
+    
         return $this;
     }
 
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = [];
+    
+        foreach ($roles as $roleName) {
+            $this->addRole($roleName);
+        }
+    
+        return $this;
+    }
+
+private function findRoleByName(string $roleName): ?Role
+{
+    foreach ($this->roles as $role) {
+        if ($role->getNomRole() === $roleName) {
+            return $role;
+        }
+    }
+
+    return null;
+}
+
+
+
+
+public function removeRole(string $roleName): static
+{
+    $key = array_search($roleName, $this->roles, true);
+    if ($key !== false) {
+        unset($this->roles[$key]);
+        $this->roles = array_values($this->roles); // Reindex the array
+    }
+
+    return $this;
+}
+
+public function hasRole(string $roleName): bool
+{
+    return in_array($roleName, $this->roles, true);
+}
     /**
      * @see PasswordAuthenticatedUserInterface
      */
@@ -332,6 +384,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setResetToken(?string $resetToken): static
     {
         $this->resetToken = $resetToken;
+
+        return $this;
+    }
+
+    public function getRoleEntity(): ?Role
+    {
+        return $this->RoleEntity;
+    }
+
+    public function setRoleEntity(?Role $RoleEntity): static
+    {
+        $this->RoleEntity = $RoleEntity;
 
         return $this;
     }

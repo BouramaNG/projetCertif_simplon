@@ -38,8 +38,9 @@ security:
         - { path: ^/api/creer-parrainage, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/faire-don, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
-        - { path: ^/api/newsletter, roles: IS_AUTHENTICATED_FULLY}
+        # - { path: ^/api/newsletter, roles: IS_AUTHENTICATED_FULLY}
         - { path: ^/api/demande-reset-password, roles: PUBLIC_ACCESS }
         - { path: ^/api/recherche-dahra, roles: PUBLIC_ACCESS }
         - { path: ^/api/devenir-marraine, roles: PUBLIC_ACCESS }
         - { path: ^/api/faire-donTest, roles: PUBLIC_ACCESS }
+        - { path: ^/api/newsletter, roles: PUBLIC_ACCESS }
