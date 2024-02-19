@@ -35,6 +35,6 @@ jobs:
       run: ls
     - name: testes
       run: cd  tests/Unit
-
+      php bin/phpunit tests/Unit
     - name: Run tests
       run: php bin/phpunit tests/Unit
