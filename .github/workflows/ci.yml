@@ -31,10 +31,10 @@ jobs:
 
     # - name: Wait for MySQL to start
     #   run: dockerize -wait tcp://localhost:3306 -timeout 1m
-    -name: debug
-    run: ls
-    -name: testes
-    run: cd  tests\Unit
+    - name: debug
+       run: ls
+    - name: testes
+       run: cd  tests\Unit
 
     - name: Run tests
       run: php bin/phpunit tests/Unit
