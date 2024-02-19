@@ -5,8 +5,10 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Talibe;
 use App\Entity\Parrainage;
-use OpenApi\Annotations as OA;
 use App\Service\FileUploader;
+use OpenApi\Annotations as OA;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mailer\MailerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Security;
@@ -49,7 +51,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class ParrainageController extends AbstractController
 {
     #[Route('/creer-parrainage', name: 'creer_parrainage', methods: ['POST'])]
-    public function creerParrainage(Request $request, EntityManagerInterface $em, SerializerInterface $serializer, ValidatorInterface $validator, Security $security): JsonResponse
+    public function creerParrainage(Request $request, EntityManagerInterface $em, SerializerInterface $serializer, ValidatorInterface $validator, Security $security,MailerInterface $mailer): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         
@@ -109,6 +111,17 @@ class ParrainageController extends AbstractController
     
         $em->persist($parrainage);
         $em->flush();
+        $marraine = $parrainage->getUser();
+
+        if ($marraine && $marraine->getEmail()) {
+            $email = (new Email())
+                ->from('ngombourama@gmail.com')
+                ->to($marraine->getEmail())
+                ->subject('Confirmation de parrainage')
+                ->html('<p>Votre parrainage est en attente de confirmation. L\'admin vas vous contacter pour la confirmation du parrainage</p>');
+        
+            $mailer->send($email);
+        }
     
         return new JsonResponse(['message' => 'Parrainage créé avec succès', 'nom_du_dahra' => $nomDuDahra], JsonResponse::HTTP_CREATED);
     }

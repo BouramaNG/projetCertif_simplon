@@ -8,6 +8,8 @@ use App\Entity\FaireDon;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Security;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -59,45 +61,53 @@ class FaireDonController extends AbstractController
 
   
     #[Route('/faire-don', name: 'faire_don', methods: ['POST'])]
-    public function faireDon(Request $request, EntityManagerInterface $em, ValidatorInterface $validator, Security $security): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-        $user = $security->getUser();
-        if (!$user || !in_array('ROLE_DONATEUR', $user->getRoles())) {
-            return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
-        }
-    
-        // if (!$user) {
-        //     return new JsonResponse(['message' => 'Utilisateur non connecté'], JsonResponse::HTTP_UNAUTHORIZED);
-        // }
-    
-        $faireDon = new FaireDon();
-        $faireDon->setDate(new \DateTime());
-        $faireDon->setStatus($data['status'] ?? 'en attente');
-        $faireDon->setTypeDon($data['typeDon'] ?? null);
-        $faireDon->setAdresseProvenance($data['adresseProvenance'] ?? null);
-        $faireDon->setDescriptionDon($data['descriptionDon'] ?? null);
-        $faireDon->setDisponibiliteDon($data['disponibiliteDon'] ?? null);
-        $dahraName = $data['dahra_name'] ?? null;
-        $dahra = $em->getRepository(Dahra::class)->findOneBy(['nom' => $dahraName]);
-    
-        if (!$dahra) {
-            return new JsonResponse(['message' => 'Dahra non trouvé'], JsonResponse::HTTP_NOT_FOUND);
-        }
-    
-        $faireDon->setUser($user);
-        $faireDon->setDahra($dahra);
-    
-        $errors = $validator->validate($faireDon);
-        if (count($errors) > 0) {
-            return new JsonResponse((string) $errors, JsonResponse::HTTP_BAD_REQUEST);
-        }
-    
-        $em->persist($faireDon);
-        $em->flush();
-    
-        return new JsonResponse(['message' => 'Don effectué avec succès'], JsonResponse::HTTP_CREATED);
+    public function faireDon(Request $request, EntityManagerInterface $em, ValidatorInterface $validator, Security $security, MailerInterface $mailer): JsonResponse
+{
+    $data = json_decode($request->getContent(), true);
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_DONATEUR', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
+
+    $faireDon = new FaireDon();
+    $faireDon->setDate(new \DateTime());
+    $faireDon->setStatus($data['status'] ?? 'en attente');
+    $faireDon->setTypeDon($data['typeDon'] ?? null);
+    $faireDon->setAdresseProvenance($data['adresseProvenance'] ?? null);
+    $faireDon->setDescriptionDon($data['descriptionDon'] ?? null);
+    $faireDon->setDisponibiliteDon($data['disponibiliteDon'] ?? null);
+    $dahraName = $data['dahra_name'] ?? null;
+    $dahra = $em->getRepository(Dahra::class)->findOneBy(['nom' => $dahraName]);
+
+    if (!$dahra) {
+        return new JsonResponse(['message' => 'Dahra non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    $faireDon->setUser($user);
+    $faireDon->setDahra($dahra);
+
+    $errors = $validator->validate($faireDon);
+    if (count($errors) > 0) {
+        return new JsonResponse((string) $errors, JsonResponse::HTTP_BAD_REQUEST);
+    }
+
+    $em->persist($faireDon);
+    $em->flush();
+
+    $marraine = $faireDon->getUser();
+
+    if ($marraine && $marraine->getEmail()) {
+        $email = (new Email())
+            ->from('ngombourama@gmail.com')
+            ->to($marraine->getEmail())
+            ->subject('Confirmation de don')
+            ->html('<p>Merci ! pour votre don. partager avec le peu que vous avez pour les personnes dans le besoins est signes de bonnes foi </p>');
+    
+        $mailer->send($email);
+    }
+
+    return new JsonResponse(['message' => 'Don effectué avec succès'], JsonResponse::HTTP_CREATED);
+}
 
 /**
  * @OA\Get(
@@ -198,5 +208,64 @@ public function listeDons(EntityManagerInterface $em): JsonResponse
     
         return new JsonResponse(['message' => 'Don effectué avec succès'], JsonResponse::HTTP_CREATED);
     }
+
+/**
+ * @OA\Get(
+ *     path="/api/dons_donateur",
+ *     summary="Liste des dons d'un donateur",
+ *     description="Récupère la liste de tous les dons effectués par un donateur.",
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des dons récupérée avec succès",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 type="object",
+ *                 @OA\Property(property="date", type="string", format="datetime", example="2024-01-20 15:00:00"),
+ *                 @OA\Property(property="status", type="string", example="en attente"),
+ *                 @OA\Property(property="adresse_provenance", type="string", example="123 Rue Exemple, Ville"),
+ *                 @OA\Property(property="description_don", type="string", example="Description détaillée du don"),
+ *                 @OA\Property(property="dahra_name", type="string", example="Dahra Al Azhar"),
+ *                 @OA\Property(property="dahra_adresse", type="string", example="Adresse de la Dahra"),
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Accès refusé")
+ *         )
+ *     )
+ * )
+ */
+    #[Route('/dons_donateur', name: 'dons_donateur', methods: ['GET'])]
+public function DonDonateur(EntityManagerInterface $em, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_DONATEUR', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+
+    $dons = $em->getRepository(FaireDon::class)->findBy(['User' => $user]);
+
+    $results = [];
+    foreach ($dons as $don) {
+        $dahra = $don->getDahra();
+
+        $results[] = [
+            'date' => $don->getDate()->format('Y-m-d H:i:s'),
+            'status' => $don->getStatus(),
+            'adresse_provenance' => $don->getAdresseProvenance(),
+            'description_don' => $don->getDescriptionDon(),
+            'dahra_name' => $dahra->getNom(),
+            'dahra_adresse' => $dahra->getAdresse(),
+           
+        ];
+    }
+
+    return new JsonResponse(['dons' => $results], JsonResponse::HTTP_OK);
+}
     
 }

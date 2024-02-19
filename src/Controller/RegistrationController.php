@@ -162,7 +162,7 @@ public function updateDonateur(int $id, Request $request, UserPasswordHasherInte
         'email' => [new Assert\NotBlank(), new Assert\Email()],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
-        'password' => [new Assert\NotBlank()],  // Ajoutez la contrainte directement au tableau associé au champ 'password'
+        'password' => [new Assert\NotBlank()],  
     ]);
 
     $violations = $validator->validate($data, $constraints);
