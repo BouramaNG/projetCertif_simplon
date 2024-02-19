@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Role;
 use App\Entity\User;
 use App\Entity\Dahra;
 use App\Entity\Talibe;
@@ -9,8 +10,8 @@ use App\Entity\FaireDon;
 use App\Entity\Parrainage;
 use Psr\Log\LoggerInterface;
 use App\Service\FileUploader;
-use OpenApi\Annotations as OA;
 
+use OpenApi\Annotations as OA;
 use Symfony\Component\Mime\Email;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -1092,8 +1093,52 @@ public function showResetPasswordForm(Request $request): Response
      return $this->redirectToRoute('reset-password-form'); 
  }
 
+ /**
+ * @OA\Post(
+ *     path="/api/ajouter_roles",
+ *     summary="Ajouter un nouveau rôle",
+ *     description="Permet d'ajouter un nouveau rôle dans le système. Seuls les utilisateurs avec le rôle 'ROLE_ADMIN' ont accès à cette fonctionnalité.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         description="Nom du rôle à ajouter",
+ *         @OA\JsonContent(
+ *             required={"nomRole"},
+ *             @OA\Property(property="nomRole", type="string", example="ROLE_NEW_ROLE")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=201,
+ *         description="Rôle ajouté avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Role ajouté avec succès")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé"
+ *     )
+ * )
+ */
 
+ #[Route('/ajouter_roles', name: 'ajouter_roles', methods: ['POST'])]
+ public function addRole(Request $request, EntityManagerInterface $entityManager,Security $security): JsonResponse
+ {
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+     $data = json_decode($request->getContent(), true);
+     $nomRole = $data['nomRole'];
 
+     $role = new Role();
+     $role->setNomRole($nomRole);
+
+     $entityManager->persist($role);
+     $entityManager->flush();
+
+     return new JsonResponse(['message' => 'Role ajouter avec succe'], JsonResponse::HTTP_CREATED);
+ }
 
 
 }

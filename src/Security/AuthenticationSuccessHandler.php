@@ -26,11 +26,11 @@ class AuthenticationSuccessHandler implements AuthenticationSuccessHandlerInterf
         return new JsonResponse([
             'token' => $jwtToken,
             'user' => [
-                'id' => $user->getId(),
-                'nom' => $user->getNom(),
-                'prenom' => $user->getPrenom(),
+                // 'id' => $user->getId(),
+                // 'nom' => $user->getNom(),
+                // 'prenom' => $user->getPrenom(),
                 'email' => $user->getEmail(),
-                'adresse' => $user->getAdresse(),
+                // 'adresse' => $user->getAdresse(),
                 'roles' => $user->getRoles(),
                 
             ]

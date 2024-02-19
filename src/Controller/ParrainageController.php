@@ -113,6 +113,54 @@ class ParrainageController extends AbstractController
         return new JsonResponse(['message' => 'Parrainage créé avec succès', 'nom_du_dahra' => $nomDuDahra], JsonResponse::HTTP_CREATED);
     }
 
+    /**
+ * @OA\Get(
+ *     path="/api/liste-talibes-parraines",
+ *     summary="Liste des talibés parrainés par la marraine",
+ *     description="Permet de récupérer la liste des talibés parrainés par la marraine authentifiée.",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des talibés parrainés",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 type="object",
+ *                 @OA\Property(property="id", type="integer", example="1"),
+ *                 @OA\Property(property="nom", type="string", example="Talibé 1"),
+ *                 @OA\Property(property="prenom", type="string", example="Prenom Talibé 1"),
+ *                 @OA\Property(property="date_parrainage", type="string", format="date-time", example="2024-02-20T12:00:00Z")
+ *             )
+ *         )
+ *     )
+ * )
+ */
+#[Route('/lister_parrainage', name: 'lister_parrainage', methods: ['GET'])]
+public function listeTalibesParraines(Request $request, EntityManagerInterface $em, SerializerInterface $serializer, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_MARRAINE', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+    $parrainages = $em->getRepository(Parrainage::class)->findBy(['user' => $user]);
+
+    $results = [];
+    foreach ($parrainages as $parrainage) {
+        $talibe = $parrainage->getTalibe();
+        $dahra = $talibe->getDahra();
+
+        $results[] = [
+            'nom_talibe' => $talibe->getNom(),
+            'prenom_talibe' => $talibe->getPrenom(),
+            'nom_dahra' => $dahra->getNom(),
+            'adresse_dahra' => $dahra->getAdresse(),
+        ];
+    }
+
+    return new JsonResponse($results, JsonResponse::HTTP_OK);
+}
+
+
 
 
 
