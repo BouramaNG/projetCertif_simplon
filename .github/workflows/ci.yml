@@ -29,12 +29,17 @@ jobs:
       with:
         php-version: '8.1'
 
+    - name: Install dependencies
+      run: composer install
+    - name: Run Unit tests
+      run:  php bin/phpunit
+
     # - name: Wait for MySQL to start
     #   run: dockerize -wait tcp://localhost:3306 -timeout 1m
-    - name: debug
-      run: ls
-    - name: testes
-      run: cd  tests/Unit
-      php bin/phpunit tests/Unit
-    - name: Run tests
-      run: php bin/phpunit tests/Unit
+    # - name: debug
+    #   run: ls
+    # - name: testes
+    #   run: cd  tests/Unit
+    #   php bin/phpunit tests/Unit
+    # - name: Run tests
+    #   run: php bin/phpunit tests/Unit
