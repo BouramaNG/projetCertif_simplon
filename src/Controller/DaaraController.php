@@ -150,4 +150,57 @@ class DaaraController extends AbstractController
     $responseData = $serializer->serialize($dahra, 'json', ['groups' => 'dahra']);
     return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
 }
+
+
+/**
+ * @OA\Put(
+ *     path="/archiver-talibe/{id}",
+ *     summary="Archive un talibé",
+ *     tags={"Talibes"},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="ID du talibé à archiver",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Talibé archivé avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Talibé archivé avec succès")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Talibé non trouvé"
+ *     )
+ * )
+ */
+#[Route('/archiver-talibe/{id}', name: 'archiver_talibe', methods: ['PUT'])]
+public function archiverTalibe(EntityManagerInterface $em, $id, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_DAHRA', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+
+    $talibe = $em->getRepository(Talibe::class)->find($id);
+
+    if (!$talibe) {
+        return new JsonResponse(['message' => 'Talibe non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    $talibe->setArchived(true);
+
+    $em->flush();
+
+    return new JsonResponse(['message' => 'Talibe archivé avec succès'], JsonResponse::HTTP_OK);
+}
+
 }

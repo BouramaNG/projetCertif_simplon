@@ -897,7 +897,7 @@ public function assignRole(Request $request, UserRepository $userRepository, Ent
 #[Route('/liste-roles', name: 'admin_liste_roles', methods: ['GET'])]
 public function listeRoles(EntityManagerInterface $entityManager): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN'); // S'assure que seul l'admin peut accéder à cette route
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
         // $entityManager = $this->getDoctrine()->getManager();
         $userRepository = $entityManager->getRepository(User::class);
@@ -1140,5 +1140,54 @@ public function showResetPasswordForm(Request $request): Response
      return new JsonResponse(['message' => 'Role ajouter avec succe'], JsonResponse::HTTP_CREATED);
  }
 
+/**
+ * @OA\Put(
+ *     path="/api/admin-archiver-talibe/{id}",
+ *     summary="Archive un talibé par ladmin",
+ *     tags={"Talibes"},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="ID du talibé à archiver",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Talibé archivé avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Talibé archivé avec succès")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Talibé non trouvé"
+ *     )
+ * )
+ */
+#[Route('/admin-archiver-talibe', name: 'admin-archiver-talibe', methods: ['PUT'])]
+public function adminArchiverTalibe(EntityManagerInterface $em, $id, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
 
+    $talibe = $em->getRepository(Talibe::class)->find($id);
+
+    if (!$talibe) {
+        return new JsonResponse(['message' => 'Talibe non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    $talibe->setArchived(true);
+
+    $em->flush();
+
+    return new JsonResponse(['message' => 'Talibe archivé avec succès'], JsonResponse::HTTP_OK);
+}
 }

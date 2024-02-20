@@ -21,6 +21,9 @@ class Talibe
 
     #[ORM\Column(length: 255)]
     private ?string $nom = null;
+    #[ORM\Column(type: 'boolean')]
+    private bool $archived = false;
+
 
     #[ORM\Column(length: 255)]
     private ?string $prenom = null;
@@ -260,6 +263,15 @@ class Talibe
         return $this->imageFile;
     }
     
-   
+    public function setArchived(bool $archived): self
+    {
+        $this->archived = $archived;
+    
+        return $this;
+    }
+    public function isArchived(): bool
+    {
+        return $this->archived;
+    } 
     
 }
