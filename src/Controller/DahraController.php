@@ -463,33 +463,35 @@ public function modifierTalibePresence(EntityManagerInterface $entityManager, Ta
  * )
  */
 #[Route('/lister-talibe', name: 'lister_talibe', methods: ['GET'])]
-public function listerTalibe(EntityManagerInterface $em,Request $request): JsonResponse
+public function listerTalibe(EntityManagerInterface $em, Request $request): JsonResponse
 {
     $talibes = $em->getRepository(Talibe::class)->findAll();
 
     $data = [];
     foreach ($talibes as $talibe) {
-        $dahra = $talibe->getDahra();
-        $dahraNom = $dahra ? $dahra->getNom() : null;
-        $dateArriveTalibe = $talibe->getDateArriveTalibe();
+        if (!$talibe->isArchived()) {
+            $dahra = $talibe->getDahra();
+            $dahraNom = $dahra ? $dahra->getNom() : null;
+            $dateArriveTalibe = $talibe->getDateArriveTalibe();
 
-        // Formater la date d'arrivée au format Y-m-d
-        $formattedDateArriveTalibe = $dateArriveTalibe ? $dateArriveTalibe->format('Y-m-d') : null;
-        $imageFilename = $dahra->getImageFilename();
-        $image = $imageFilename ? '/uploads/dahras/' . $imageFilename : null;
-        $data[] = [
-            'id' => $talibe->getId(),
-            'prenom' => $talibe->getPrenom(),
-            'nom' => $talibe->getNom(),
-            'age' => $talibe->getAge(),
-            'adresse' => $talibe->getAdresse(),
-            'situation' => $talibe->getSituation(),
-            'description' => $talibe->getDescription(),
-            'image' => $talibe->getImage(),
-            'datearrivetalibe' => $formattedDateArriveTalibe,
-            'dahraNom' => $dahraNom,
-            'imageFilename' => $image,
-        ];
+           
+            $formattedDateArriveTalibe = $dateArriveTalibe ? $dateArriveTalibe->format('Y-m-d') : null;
+            $imageFilename = $dahra->getImageFilename();
+            $image = $imageFilename ? '/uploads/dahras/' . $imageFilename : null;
+            $data[] = [
+                'id' => $talibe->getId(),
+                'prenom' => $talibe->getPrenom(),
+                'nom' => $talibe->getNom(),
+                'age' => $talibe->getAge(),
+                'adresse' => $talibe->getAdresse(),
+                'situation' => $talibe->getSituation(),
+                'description' => $talibe->getDescription(),
+                'image' => $talibe->getImage(),
+                'datearrivetalibe' => $formattedDateArriveTalibe,
+                'dahraNom' => $dahraNom,
+                'imageFilename' => $image,
+            ];
+        }
     }
 
     return new JsonResponse($data, JsonResponse::HTTP_OK);
