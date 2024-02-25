@@ -36,6 +36,11 @@ class Dahra
     #[ORM\Column(length: 255)]
     #[Groups(["dahra"])]
     private ?string $nomOuztas = null;
+    #[ORM\Column(type: 'float', nullable: true)]
+private ?float $latitude = null;
+
+#[ORM\Column(type: 'float', nullable: true)]
+private ?float $longitude = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(["dahra"])]
@@ -250,6 +255,28 @@ public function getImageFilename(): ?string
     return $this->imageFilename;
 }
 
+public function getLatitude(): ?float
+{
+    return $this->latitude;
+}
 
+public function setLatitude(?float $latitude): static
+{
+    $this->latitude = $latitude;
+
+    return $this;
+}
+
+public function getLongitude(): ?float
+{
+    return $this->longitude;
+}
+
+public function setLongitude(?float $longitude): static
+{
+    $this->longitude = $longitude;
+
+    return $this;
+}
 
 }

@@ -87,6 +87,7 @@ public function ajouterDahra(Request $request,Security $security, UserPasswordHa
     {
 
         $user = $security->getUser();
+       
     if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
@@ -94,8 +95,22 @@ public function ajouterDahra(Request $request,Security $security, UserPasswordHa
    
     
     $constraints = new Assert\Collection([
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
-        'password' => [new Assert\NotBlank()],
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email(),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}@/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
+            ])
+        ],
+        'password' => [
+            new Assert\NotBlank(),
+            new Assert\Length(['min' => 6, 'max' => 9]),
+            new Assert\Regex([
+                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,9}$/',
+                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+            ])
+        ],
         'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
@@ -223,8 +238,22 @@ public function modifierDahra(int $id, Request $request,FileUploader $fileUpload
 
     $data = json_decode($request->getContent(), true);
      $constraints = new Assert\Collection([
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
-        'password' => [new Assert\NotBlank()],
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email(),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}@/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
+            ])
+        ],
+        'password' => [
+            new Assert\NotBlank(),
+            new Assert\Length(['min' => 6, 'max' => 9]),
+            new Assert\Regex([
+                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,9}$/',
+                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+            ])
+        ],
         'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
@@ -1190,4 +1219,5 @@ public function adminArchiverTalibe(EntityManagerInterface $em, $id, Security $s
 
     return new JsonResponse(['message' => 'Talibe archivé avec succès'], JsonResponse::HTTP_OK);
 }
+
 }

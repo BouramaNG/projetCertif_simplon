@@ -88,8 +88,22 @@ class DahraController extends AbstractController
    
     
         $constraints = new Assert\Collection([
-            'email' => [new Assert\NotBlank(), new Assert\Email()],
-            'password' => [new Assert\NotBlank()],
+            'email' => [
+                new Assert\NotBlank(),
+                new Assert\Email(),
+                new Assert\Regex([
+                    'pattern' => '/^[a-zA-Z]{3,}@/',
+                    'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
+                ])
+            ],
+            'password' => [
+                new Assert\NotBlank(),
+                new Assert\Length(['min' => 6, 'max' => 9]),
+                new Assert\Regex([
+                    'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,9}$/',
+                    'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+                ])
+            ],
             'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
             'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
             'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
@@ -208,8 +222,22 @@ class DahraController extends AbstractController
  {
      $data = json_decode($request->getContent(), true);
      $constraints = new Assert\Collection([
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
-        'password' => [new Assert\NotBlank()],
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email(),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}@/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
+            ])
+        ],
+        'password' => [
+            new Assert\NotBlank(),
+            new Assert\Length(['min' => 6, 'max' => 9]),
+            new Assert\Regex([
+                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,9}$/',
+                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+            ])
+        ],
         'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
@@ -890,7 +918,14 @@ public function register(Request $request, UserPasswordHasherInterface $password
     
     // Valider les données
     $constraints = new Assert\Collection([
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email(),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}@/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
+            ])
+        ],
         'password' => [new Assert\NotBlank()],
         'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
