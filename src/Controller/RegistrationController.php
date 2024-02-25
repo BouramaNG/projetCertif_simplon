@@ -7,10 +7,11 @@ use App\Entity\Marraine;
 use OpenApi\Annotations as OA;
 use App\Repository\RoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Security;
-use Symfony\Component\HttpFoundation\Response;
 
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -60,10 +61,36 @@ class RegistrationController extends AbstractController
         $data = json_decode($request->getContent(), true);
     
         $constraints = new Assert\Collection([
-            'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-            'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-            'email' => [new Assert\NotBlank(), new Assert\Email()],
-            'password' => [new Assert\NotBlank()],
+            'nom' => [
+                new Assert\NotBlank(),
+                new Assert\Type(['type' => 'string']),
+                new Assert\Regex('/^[a-zA-Z]+$/'),
+                new Assert\Length(['min' => 2, 'max' => 20]),
+            ],
+            'prenom' => [
+                new Assert\NotBlank(),
+                new Assert\Type(['type' => 'string']),
+                new Assert\Regex('/^[a-zA-Z]+$/'),
+                new Assert\Length(['min' => 2, 'max' => 20]),
+            ],
+            'email' => [
+                new Assert\NotBlank(),
+                new Assert\Email([
+                    'message' => 'L\'adresse email "{{ value }}" n\'est pas valide.'
+                ]),
+                new Assert\Regex([
+                    'pattern' => '/^[a-zA-Z]{3,}\d*@(gmail\.com|yahoo\.com|hotmail\.com)$/',
+                    'message' => 'L\'email doit contenir au moins 3 lettres avant le @ et doit être de la forme "xxx@gmail.com", "xxx@yahoo.com" ou "xxx@hotmail.com".'
+                ])
+            ],
+            'password' => [
+                new Assert\NotBlank(),
+                new Assert\Length(['min' => 6, 'max' => 15]),
+                new Assert\Regex([
+                    'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,15}$/',
+                    'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+                ])
+            ],
             'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
             'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
         ]);
@@ -157,12 +184,38 @@ public function updateDonateur(int $id, Request $request, UserPasswordHasherInte
 {
     $data = json_decode($request->getContent(), true);
     $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
+        'nom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],
+        'prenom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email([
+                'message' => 'L\'adresse email "{{ value }}" n\'est pas valide.'
+            ]),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}\d*@(gmail\.com|yahoo\.com|hotmail\.com)$/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @ et doit être de la forme "xxx@gmail.com", "xxx@yahoo.com" ou "xxx@hotmail.com".'
+            ])
+        ],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
-        'password' => [new Assert\NotBlank()],  
+        'password' => [
+            new Assert\NotBlank(),
+            new Assert\Length(['min' => 6, 'max' => 15]),
+            new Assert\Regex([
+                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,15}$/',
+                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+            ])
+        ],  
     ]);
 
     $violations = $validator->validate($data, $constraints);
@@ -230,18 +283,52 @@ public function devenirMarraine(EntityManagerInterface $em, Request $request, Us
     $data = json_decode($request->getContent(), true);
 
     $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
-        'password' => [new Assert\NotBlank()],
+        'nom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],
+        'prenom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email([
+                'message' => 'L\'adresse email "{{ value }}" n\'est pas valide.'
+            ]),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}\d*@(gmail\.com|yahoo\.com|hotmail\.com)$/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @ et doit être de la forme "xxx@gmail.com", "xxx@yahoo.com" ou "xxx@hotmail.com".'
+            ])
+        ],
+        'password' => [
+            new Assert\NotBlank(),
+            new Assert\Length(['min' => 6, 'max' => 15]),
+            new Assert\Regex([
+                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,15}$/',
+                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+            ])
+        ],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string']), new Assert\Regex('/^[a-zA-Z]+$/')],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
     ]);
 
     $violations = $validator->validate($data, $constraints);
+    
     if (count($violations) > 0) {
-        return $this->json(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+        return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
     }
+
+    $client = HttpClient::create();
+    $response = $client->request('GET', 'https://api.ipgeolocation.io/ipgeo?apiKey=14f46a4dfa064abdab4b0b6a995921d2');
+    $geoData = $response->toArray();
+    $ipAddress = $geoData['ip'];
+    $latitude = $geoData['latitude'];
+    $longitude = $geoData['longitude'];
 
     $roleMarraine = $roleRepository->findOneBy(['nomRole' => 'MARRAINE']);
 
@@ -268,6 +355,9 @@ public function devenirMarraine(EntityManagerInterface $em, Request $request, Us
         'prenom' => $user->getPrenom(),
         'adresse' => $user->getAdresse(),
         'numeroTelephone' => $user->getNumeroTelephone(),
+        'ip_address' => $geoData['ip'],
+        'latitude' => $geoData['latitude'],
+        'longitude' => $geoData['longitude'],
         'message' => 'Inscription de la marraine réussie',
     ];
 
@@ -326,12 +416,38 @@ public function modifierMarraine(int $id, Request $request, UserPasswordHasherIn
     $data = json_decode($request->getContent(), true);
 
     $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-        'email' => [new Assert\NotBlank(), new Assert\Email()],
+            'nom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],
+        'prenom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email([
+                'message' => 'L\'adresse email "{{ value }}" n\'est pas valide.'
+            ]),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}\d*@(gmail\.com|yahoo\.com|hotmail\.com)$/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @ et doit être de la forme "xxx@gmail.com", "xxx@yahoo.com" ou "xxx@hotmail.com".'
+            ])
+        ],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'numeroTelephone' => [new Assert\NotBlank(), new Assert\Length(['min' => 5])],
-        'password' => [new Assert\NotBlank()],
+        'password' => [
+            new Assert\NotBlank(),
+            new Assert\Length(['min' => 6, 'max' => 15]),
+            new Assert\Regex([
+                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,15}$/',
+                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+            ])
+        ],
     ]);
 
     $violations = $validator->validate($data, $constraints);
@@ -401,10 +517,34 @@ public function ajouterUtilisateurAdmin(EntityManagerInterface $em, Request $req
     $data = json_decode($request->getContent(), true);
 
     $constraints = new Assert\Collection([
-        'nom' => [new Assert\NotBlank(), new Assert\Length(['min' => 2]), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'prenom' => [new Assert\NotBlank(), new Assert\Length(['min' => 4]), new Assert\Regex('/^[a-zA-Z]+$/')],
-        'email' => [new Assert\NotBlank()],
-        'password' => [new Assert\NotBlank()],
+        'nom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],
+        'prenom' => [
+            new Assert\NotBlank(),
+            new Assert\Type(['type' => 'string']),
+            new Assert\Regex('/^[a-zA-Z]+$/'),
+            new Assert\Length(['min' => 2, 'max' => 20]),
+        ],  
+        'email' => [
+            new Assert\NotBlank(),
+            new Assert\Email(),
+            new Assert\Regex([
+                'pattern' => '/^[a-zA-Z]{3,}@/',
+                'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
+            ])
+        ],
+        'password' => [
+            new Assert\NotBlank(),
+            new Assert\Length(['min' => 6, 'max' => 9]),
+            new Assert\Regex([
+                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,9}$/',
+                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
+            ])
+        ],
         'numeroTelephone' => [new Assert\NotBlank()],
      
     ]);
