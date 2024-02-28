@@ -3,10 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\Dahra;
 use App\Entity\Talibe;
 use App\Entity\Parrainage;
-use OpenApi\Annotations as OA;
 use App\Service\FileUploader;
+use OpenApi\Annotations as OA;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Security;
@@ -75,14 +76,21 @@ class TalibeController extends AbstractController
             return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
         }
     
-        $user = $this->getUser();
-        if (!$user || !$user->isActive()) {
-            return new JsonResponse(['error' => 'Votre compte est bloqué. Vous ne pouvez pas ajouter de talibé.'], Response::HTTP_FORBIDDEN);
-        }
+        // $user = $this->getUser();
+        // if (!$user || !$user->isActive()) {
+        //     return new JsonResponse(['error' => 'Votre compte est bloqué. Vous ne pouvez pas ajouter de talibé.'], Response::HTTP_FORBIDDEN);
+        // }
+       
     
         $dahra = $user->getDahras()->first();
         if (!$dahra) {
             return new JsonResponse(['message' => 'Dahra non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+        }
+        $dahraRepository = $entityManager->getRepository(Dahra::class);
+        $dahra = $dahraRepository->findOneBy(['User' => $user]);
+        
+        if (!$dahra || $dahra->isBloque()) {
+            return new JsonResponse(['error' => 'Votre Dahra est bloqué. Vous ne pouvez pas ajouter de talibé.'], Response::HTTP_FORBIDDEN);
         }
     
         $data = json_decode($request->getContent(), true);

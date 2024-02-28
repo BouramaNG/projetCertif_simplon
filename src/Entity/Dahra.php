@@ -71,7 +71,8 @@ private ?float $longitude = null;
    
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
-
+    #[ORM\Column(type: 'boolean')]
+    private bool $bloque = false;
     
     public function __construct()
     {
@@ -278,5 +279,24 @@ public function setLongitude(?float $longitude): static
 
     return $this;
 }
+
+
+public function isBloque(): bool
+{
+    return $this->bloque;
+}
+
+public function setBloque(bool $bloque): static
+{
+    $this->bloque = $bloque;
+    //   // Mettre à jour le statut isActive de l'utilisateur correspondant
+    //   $user = $this->getUser();
+    //   if ($user) {
+    //       $user->setIsActive(!$bloque);
+    //   }
+
+    return $this;
+}
+
 
 }

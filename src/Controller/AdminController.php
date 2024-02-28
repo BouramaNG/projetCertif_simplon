@@ -148,6 +148,7 @@ $dahra->setRegion($request->request->get('region'));
 $dahra->setNumeroTelephoneOuztas($request->request->get('numeroTelephoneOuztas'));
 $dahra->setNombreTalibe($request->request->get('nombreTalibe'));
 $dahra->setUser($user);
+$dahra->setBloque(true);
    
 if ($request->files->has('imageFile')) {
     $imageFile = $request->files->get('imageFile');
@@ -170,12 +171,12 @@ return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
 
 
 /**
- * Modifier les informations d'un Dahra Par Admin.
- * 
- * @OA\Put(
+ * Modifier les informations d'un Dahra par un administrateur.
+ *
+ * @OA\Post(
  *     path="/api/modifier-dahra-admin/{id}",
- *     summary="Modifier les informations d'un Dahra Par Admin",
- *     description="Permet à un Dahra de mettre à jour ses informations en spécifiant l'identifiant du Dahra dans l'URL.",
+ *     summary="Modifier les informations d'un Dahra par un administrateur",
+ *     description="Permet à un administrateur de modifier les informations d'un Dahra en spécifiant l'identifiant du Dahra dans l'URL.",
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -196,7 +197,7 @@ return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
  *                 @OA\Property(property="numeroTelephoneOuztas", type="string", example="Nouveau Numéro de Téléphone Ouztas"),
  *                 @OA\Property(property="nombreTalibe", type="integer", example=50),
  *                 @OA\Property(property="password", type="string", example="NouveauMotDePasse"),
- *                 @OA\Property(property="imageFile", type="file", format="binary"),
+ *                 @OA\Property(property="imageFile", type="string", format="binary"),
  *             )
  *         )
  *     ),
@@ -227,46 +228,34 @@ return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
 
 
 
-#[Route('/modifier-dahra-admin/{id}', name: 'modifier-dahra/{id}', methods: ['PUT'])]
-public function modifierDahra(int $id, Request $request,FileUploader $fileUploader, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator, Security $security): JsonResponse
+#[Route('/modifier-dahra-admin/{id}', name: 'modifier-dahra/{id}', methods: ['POST'])]
+public function modifierDahra(int $id, Request $request, FileUploader $fileUploader, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager, ValidatorInterface $validator, Security $security): JsonResponse
 {
     $user = $security->getUser();
 
-    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+    if (!$user || !in_array('ROLE_DAHRA', $user->getRoles())) {
         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
 
-    $data = json_decode($request->getContent(), true);
-     $constraints = new Assert\Collection([
-        'email' => [
-            new Assert\NotBlank(),
-            new Assert\Email(),
-            new Assert\Regex([
-                'pattern' => '/^[a-zA-Z]{3,}@/',
-                'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
-            ])
-        ],
-        'password' => [
-            new Assert\NotBlank(),
-            new Assert\Length(['min' => 6, 'max' => 9]),
-            new Assert\Regex([
-                'pattern' => '/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,9}$/',
-                'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
-            ])
-        ],
+    $dahra = $entityManager->getRepository(Dahra::class)->find($id);
+
+    if (!$dahra) {
+        return new JsonResponse(['error' => 'Dahra not found'], Response::HTTP_NOT_FOUND);
+    }
+
+    $data = $request->request->all();
+    $files = $request->files->all();
+
+    $constraints = new Assert\Collection([
         'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
         'region' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-        'numeroTelephone' => [
-            new Assert\NotBlank(),
-            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
-        ],
         'numeroTelephoneOuztas' => [
             new Assert\NotBlank(),
             new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
         ],
-        'nombreTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'integer'])],
+        'nombreTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
     ]);
 
     $violations = $validator->validate($data, $constraints);
@@ -274,33 +263,27 @@ public function modifierDahra(int $id, Request $request,FileUploader $fileUpload
     if (count($violations) > 0) {
         return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
     }
- 
-     $dahra = $entityManager->getRepository(Dahra::class)->find($id);
- 
-     if (!$dahra) {
-         return new JsonResponse(['error' => 'Dahra not found'], Response::HTTP_NOT_FOUND);
-     }
-     $requestData = json_decode($request->getContent(), true);
 
-    $dahra->setNom($requestData['nom'] ?? $dahra->getNom());
-    $dahra->setNomOuztas($requestData['nomOuztas'] ?? $dahra->getNomOuztas());
-    $dahra->setAdresse($requestData['adresse'] ?? $dahra->getAdresse());
-    $dahra->setRegion($requestData['region'] ?? $dahra->getRegion());
-    $dahra->setNumeroTelephoneOuztas($requestData['numeroTelephoneOuztas'] ?? $dahra->getNumeroTelephoneOuztas());
-    $dahra->setNombreTalibe($requestData['nombreTalibe'] ?? $dahra->getNombreTalibe());
+    $dahra->setNom($data['nom']);
+    $dahra->setNomOuztas($data['nomOuztas']);
+    $dahra->setAdresse($data['adresse']);
+    $dahra->setRegion($data['region']);
+    $dahra->setNumeroTelephoneOuztas($data['numeroTelephoneOuztas']);
+    $dahra->setNombreTalibe($data['nombreTalibe']);
 
-    if ($request->files->has('imageFile')) {
-        $imageFile = $request->files->get('imageFile');
+    if (isset($files['imageFile'])) {
+        $imageFile = $files['imageFile'];
         if ($imageFile) {
             $uploadedFilePath = $fileUploader->upload($imageFile);
             $dahra->setImageFilename($uploadedFilePath);
         }
     }
-    if (!empty($requestData['password'])) {
-        $user = $dahra->getUser();
-        $user->setPassword($passwordHasher->hashPassword($user, $requestData['password']));
-    }
 
+    if (!empty($data['password'])) {
+        $user = $dahra->getUser();
+        $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
+    }
+// dd($dahra);
     $entityManager->flush();
     return new JsonResponse(['message' => 'Les informations du Dahra ont été mises à jour avec succès'], Response::HTTP_OK);
 }
@@ -691,7 +674,7 @@ public function listerDahra(EntityManagerInterface $em,Request $request): JsonRe
     $data = [];
     foreach ($dahras as $dahra) {
         $imageFilename = $dahra->getImageFilename();
-        $image = $imageFilename ? '/uploads/dahras/' . $imageFilename : null;
+        $image = $imageFilename ? '/uploads/' . $imageFilename : null;
         $dahraData = [
             'id' => $dahra->getId(),
             'nom' => $dahra->getNom(),
@@ -1218,6 +1201,105 @@ public function adminArchiverTalibe(EntityManagerInterface $em, $id, Security $s
     $em->flush();
 
     return new JsonResponse(['message' => 'Talibe archivé avec succès'], JsonResponse::HTTP_OK);
+}
+
+
+/**
+ * Bloquer un Dahra par un administrateur.
+ *
+ * @OA\Put(
+ *     path="/api/dahra/{id}/bloquer",
+ *     summary="Bloquer un Dahra par un administrateur",
+ *     description="Bloque un Dahra spécifique en fonction de son ID par un administrateur.",
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="ID du Dahra à bloquer",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Dahra bloqué avec succès"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Dahra non trouvé"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé"
+ *     )
+ * )
+ */
+#[Route('/dahra/{id}/bloquer', name: 'dahra_bloquer', methods: ['PUT'])]
+public function bloquerDahra(int $id, EntityManagerInterface $entityManager, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+
+    $dahra = $entityManager->getRepository(Dahra::class)->find($id);
+
+    if (!$dahra) {
+        return new JsonResponse(['error' => 'Dahra non trouvé'], Response::HTTP_NOT_FOUND);
+    }
+
+    $dahra->setBloque(true);
+    $entityManager->flush();
+
+    return new JsonResponse(['message' => 'Dahra bloqué avec succès']);
+}
+
+
+/**
+ * Activer un Dahra par un administrateur.
+ *
+ * @OA\Post(
+ *     path="/api/dahra/{id}/activer",
+ *     summary="Activer un Dahra par un administrateur",
+ *     description="Active un Dahra spécifique en fonction de son ID par un administrateur.",
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="ID du Dahra à activer",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Dahra activé avec succès"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Dahra non trouvé"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé"
+ *     )
+ * )
+ */
+#[Route('/dahra/{id}/active', name: 'dahra_active', methods: ['POST'])]
+public function activerDahra(int $id, EntityManagerInterface $entityManager, Security $security): JsonResponse
+{
+    $user = $security->getUser();
+    if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+    }
+
+    $dahra = $entityManager->getRepository(Dahra::class)->find($id);
+
+    if (!$dahra) {
+        return new JsonResponse(['error' => 'Dahra non trouvé'], Response::HTTP_NOT_FOUND);
+    }
+
+   
+    $dahra->setBloque(false);
+    $entityManager->flush();
+
+    return new JsonResponse(['message' => 'Dahra activé avec succès']);
 }
 
 }

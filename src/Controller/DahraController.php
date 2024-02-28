@@ -141,6 +141,7 @@ class DahraController extends AbstractController
     $dahra->setNumeroTelephoneOuztas($request->request->get('numeroTelephoneOuztas'));
     $dahra->setNombreTalibe($request->request->get('nombreTalibe'));
     $dahra->setUser($user);
+    $dahra->setBloque(true);
        
     if ($request->files->has('imageFile')) {
         $imageFile = $request->files->get('imageFile');
@@ -163,7 +164,7 @@ class DahraController extends AbstractController
 /**
  * Modifier les informations d'un Dahra.
  * 
- * @OA\Put(
+ * @OA\Post(
  *     path="/api/modifier-dahra/{id}",
  *     summary="Modifier les informations d'un Dahra",
  *     description="Permet à un Dahra de mettre à jour ses informations en spécifiant l'identifiant du Dahra dans l'URL.",
@@ -217,20 +218,35 @@ class DahraController extends AbstractController
  */
 
     
- #[Route('/modifier-dahra/{id}', name: 'api_dahra_modifier', methods: ['PUT'])]
- public function updateDahra(int $id, Request $request,ValidatorInterface $validator, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager,FileUploader $fileUploader): JsonResponse
+ #[Route('/modifier-dahra/{id}', name: 'api_dahra_modifier', methods: ['POST'])]
+ public function infodahraModifier(int $id, Request $request, FileUploader $fileUploader, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager, ValidatorInterface $validator, Security $security): JsonResponse
  {
-     $data = json_decode($request->getContent(), true);
+     $user = $security->getUser();
+ 
+     if (!$user || !in_array('ROLE_DAHRA', $user->getRoles())) {
+         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+     }
+ 
+     $dahra = $entityManager->getRepository(Dahra::class)->find($id);
+ 
+     if (!$dahra) {
+         return new JsonResponse(['error' => 'Dahra not found'], Response::HTTP_NOT_FOUND);
+     }
+ 
+     $data = $request->request->all();
+     $files = $request->files->all();
+ 
      $constraints = new Assert\Collection([
-        'email' => [
-            new Assert\NotBlank(),
-            new Assert\Email(),
-            new Assert\Regex([
-                'pattern' => '/^[a-zA-Z]{3,}@/',
-                'message' => 'L\'email doit contenir au moins 3 lettres avant le @.'
-            ])
-        ],
-        'password' => [
+         'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+         'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+         'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+         'region' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+         'numeroTelephoneOuztas' => [
+             new Assert\NotBlank(),
+             new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
+         ],
+         'nombreTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+         'password' => [
             new Assert\NotBlank(),
             new Assert\Length(['min' => 6, 'max' => 9]),
             new Assert\Regex([
@@ -238,55 +254,36 @@ class DahraController extends AbstractController
                 'message' => 'Le mot de passe doit contenir au moins 6 caractères, au moins une lettre, un chiffre et un caractère spécial.'
             ])
         ],
-        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-        'nomOuztas' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-        'region' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
-        'numeroTelephone' => [
-            new Assert\NotBlank(),
-            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
-        ],
-        'numeroTelephoneOuztas' => [
-            new Assert\NotBlank(),
-            new Assert\Regex(['pattern' => '/^(77|78|76|70)\d{7}$/']),
-        ],
-        'nombreTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'integer'])],
-    ]);
-
-    $violations = $validator->validate($data, $constraints);
-
-    if (count($violations) > 0) {
-        return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
-    }
+     ]);
  
-     $dahra = $entityManager->getRepository(Dahra::class)->find($id);
+     $violations = $validator->validate($data, $constraints);
  
-     if (!$dahra) {
-         return new JsonResponse(['error' => 'Dahra not found'], Response::HTTP_NOT_FOUND);
+     if (count($violations) > 0) {
+         return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
      }
-     $requestData = json_decode($request->getContent(), true);
-
-    $dahra->setNom($requestData['nom'] ?? $dahra->getNom());
-    $dahra->setNomOuztas($requestData['nomOuztas'] ?? $dahra->getNomOuztas());
-    $dahra->setAdresse($requestData['adresse'] ?? $dahra->getAdresse());
-    $dahra->setRegion($requestData['region'] ?? $dahra->getRegion());
-    $dahra->setNumeroTelephoneOuztas($requestData['numeroTelephoneOuztas'] ?? $dahra->getNumeroTelephoneOuztas());
-    $dahra->setNombreTalibe($requestData['nombreTalibe'] ?? $dahra->getNombreTalibe());
-
-    if ($request->files->has('imageFile')) {
-        $imageFile = $request->files->get('imageFile');
-        if ($imageFile) {
-            $uploadedFilePath = $fileUploader->upload($imageFile);
-            $dahra->setImageFilename($uploadedFilePath);
-        }
-    }
-    if (!empty($requestData['password'])) {
-        $user = $dahra->getUser();
-        $user->setPassword($passwordHasher->hashPassword($user, $requestData['password']));
-    }
-
-    $entityManager->flush();
-    return new JsonResponse(['message' => 'Les informations du Dahra ont été mises à jour avec succès'], Response::HTTP_OK);
+ 
+     $dahra->setNom($data['nom']);
+     $dahra->setNomOuztas($data['nomOuztas']);
+     $dahra->setAdresse($data['adresse']);
+     $dahra->setRegion($data['region']);
+     $dahra->setNumeroTelephoneOuztas($data['numeroTelephoneOuztas']);
+     $dahra->setNombreTalibe($data['nombreTalibe']);
+ 
+     if (isset($files['imageFile'])) {
+         $imageFile = $files['imageFile'];
+         if ($imageFile) {
+             $uploadedFilePath = $fileUploader->upload($imageFile);
+             $dahra->setImageFilename($uploadedFilePath);
+         }
+     }
+ 
+     if (!empty($data['password'])) {
+         $user = $dahra->getUser();
+         $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
+     }
+ // dd($dahra);
+     $entityManager->flush();
+     return new JsonResponse(['message' => 'Les informations du Dahra ont été mises à jour avec succès'], Response::HTTP_OK);
  }
 
 
@@ -345,62 +342,65 @@ class DahraController extends AbstractController
 
 
     #[Route('/modifier_info_talibe/{id}', name: 'modifier', methods: ['GET', 'PUT'])]
-    public function modifierTalibe(int $id,Security $security, Request $request, EntityManagerInterface $entityManager,FileUploader $fileUploader,ValidatorInterface $validator): JsonResponse
-    {
+    public function modifierTalibe(int $id, Request $request, FileUploader $fileUploader, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager, ValidatorInterface $validator, Security $security): JsonResponse
+{
+    $user = $security->getUser();
 
-        $user = $security->getUser();
-        if (!$user || !in_array('ROLE_DAHRA', $user->getRoles())) {
-            return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
-        }
-
-        $talibe = $entityManager->getRepository(Talibe::class)->find($id);
-
-        if (!$talibe) {
-            return new JsonResponse(['message' => 'Talibe non trouvé'], JsonResponse::HTTP_NOT_FOUND);
-        }
-
-        if ($request->isMethod('GET')) {
-            return $this->json([
-                'id' => $talibe->getId(),
-                'nom' => $talibe->getNom(),
-                'prenom' => $talibe->getPrenom(),
-                'age' => $talibe->getAge(),
-                'adresse' => $talibe->getAdresse(),
-                'situation' => $talibe->getSituation(),
-                'description' => $talibe->getDescription(),
-            ], JsonResponse::HTTP_OK);
-        }
-
-        $talibe->setNom($request->request->get('nom'));
-        $talibe->setPrenom($request->request->get('prenom'));
-        $talibe->setAge($request->request->get('age'));
-        $talibe->setAdresse($request->request->get('adresse'));
-        $talibe->setSituation($request->request->get('situation'));
-        $talibe->setDescription($request->request->get('description'));
-        $talibe->setDateArriveTalibe($request->request->get('datearrivetalibe'));
-        $talibe->setPresenceTalibe($request->request->get('presencetalibe') ?? 'present');
-
-        if ($request->files->has('imageFile')) {
-            $imageFile = $request->files->get('imageFile');
-            if ($imageFile) {
-                $uploadedFilePath = $fileUploader->upload($imageFile);
-                $talibe->setImageFilename($uploadedFilePath);
-            }
-        }
-
-        $violations = $validator->validate($talibe);
-        if (count($violations) > 0) {
-            $errors = [];
-            foreach ($violations as $violation) {
-                $errors[$violation->getPropertyPath()] = $violation->getMessage();
-            }
-            return $this->json(['errors' => $errors], JsonResponse::HTTP_BAD_REQUEST);
-        }
-
-        $entityManager->flush();
-
-        return $this->json(['message' => 'Les informations du Talibe ont été modifiées avec succès'], JsonResponse::HTTP_OK);
+    if (!$user || !in_array('ROLE_DAHRA', $user->getRoles())) {
+        return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
+
+    $talibe = $entityManager->getRepository(Talibe::class)->find($id);
+
+    if (!$talibe) {
+        return new JsonResponse(['error' => 'Talibe not found'], Response::HTTP_NOT_FOUND);
+    }
+
+    $data = $request->request->all();
+    $files = $request->files->all();
+
+    $constraints = new Assert\Collection([
+        'nom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'prenom' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'age' => [new Assert\NotBlank(), new Assert\Type(['type' => 'integer'])],
+        'adresse' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'situation' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'description' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'dateArriveTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'presenceTalibe' => [new Assert\NotBlank(), new Assert\Type(['type' => 'string'])],
+        'imageFile' => [new Assert\Type(['type' => 'object'])],
+        
+    ]);
+
+    $violations = $validator->validate($data, $constraints);
+
+    if (count($violations) > 0) {
+        return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
+    }
+
+    $talibe->setNom($data['nom']);
+    $talibe->setPrenom($data['prenom']);
+    $talibe->setAge($data['age']);
+    $talibe->setAdresse($data['adresse']);
+    $talibe->setSituation($data['situation']);
+    $talibe->setDescription($data['description']);
+    $talibe->setDateArriveTalibe($data['dateArriveTalibe']);
+    $talibe->setPresenceTalibe($data['presenceTalibe']);
+
+    if (isset($files['imageFile'])) {
+        $imageFile = $files['imageFile'];
+        if ($imageFile) {
+            $uploadedFilePath = $fileUploader->upload($imageFile);
+            $talibe->setImageFilename($uploadedFilePath);
+        }
+    }
+
+   
+
+    $entityManager->flush();
+
+    return new JsonResponse(['message' => 'Les informations du Talibe ont été mises à jour avec succès'], Response::HTTP_OK);
+}
     
 /**
  * @OA\Post(
@@ -505,7 +505,7 @@ public function listerTalibe(EntityManagerInterface $em, Request $request): Json
            
             $formattedDateArriveTalibe = $dateArriveTalibe ? $dateArriveTalibe->format('Y-m-d') : null;
             $imageFilename = $dahra->getImageFilename();
-            $image = $imageFilename ? '/uploads/dahras/' . $imageFilename : null;
+            $image = $imageFilename ? '/uploads/' . $imageFilename : null;
             $data[] = [
                 'id' => $talibe->getId(),
                 'prenom' => $talibe->getPrenom(),
@@ -792,7 +792,7 @@ public function listerMesTalibes(EntityManagerInterface $em, Security $security,
                 'description' => $talibe->getDescription(),
                 'image' => $talibe->getImage(),
                 'datearrivetalibe' => $talibe->getDateArriveTalibe(),
-                'imageFilename' => $request->getSchemeAndHttpHost() . '/uploads/talibes/' . $talibe->getImageFilename(),
+                'imageFilename' => $request->getSchemeAndHttpHost() . '/uploads/' . $talibe->getImageFilename(),
             ];
         }
     }

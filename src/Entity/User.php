@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use App\Repository\DahraRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -372,6 +373,7 @@ public function hasRole(string $roleName): bool
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+      
 
         return $this;
     }

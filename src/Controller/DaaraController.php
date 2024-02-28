@@ -164,6 +164,7 @@ if (!$roleDahra) {
     $dahra->setNumeroTelephoneOuztas($request->request->get('numeroTelephoneOuztas'));
     $dahra->setNombreTalibe($request->request->get('nombreTalibe'));
     $dahra->setUser($user); 
+    $dahra->setBloque(true);
     if ($request->files->has('imageFile')) {
         $imageFile = $request->files->get('imageFile');
         if ($imageFile) {
