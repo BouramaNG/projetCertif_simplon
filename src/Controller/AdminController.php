@@ -13,6 +13,7 @@ use App\Service\FileUploader;
 
 use OpenApi\Annotations as OA;
 use Symfony\Component\Mime\Email;
+use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -83,7 +84,7 @@ class AdminController extends AbstractController
 
 #[Route('/ajouter-dahra', name: 'ajouter_dahra', methods: ['POST'])]
 
-public function ajouterDahra(Request $request,Security $security, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator,FileUploader $fileUploader): JsonResponse
+public function ajouterDahra(Request $request,Security $security, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator,FileUploader $fileUploader,RoleRepository $roleRepository): JsonResponse
     {
 
         $user = $security->getUser();
@@ -131,12 +132,18 @@ public function ajouterDahra(Request $request,Security $security, UserPasswordHa
     if (count($violations) > 0) {
         return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
     }
+    $roleDahra = $roleRepository->findOneBy(['nomRole' => 'DAHRA']);
+
+if (!$roleDahra) {
+    return $this->json(['error' => 'Le rôle "ROLE_DAHRA" n\'existe pas.'], JsonResponse::HTTP_BAD_REQUEST);
+}
 
 
 $user = new User();
 $user->setEmail($request->request->get('email'));
 $user->setNumeroTelephone($request->request->get('numeroTelephone'));
 $user->setPassword($passwordHasher->hashPassword($user, $request->request->get('password')));
+$user->setRoleEntity($roleDahra);
 $user->setRoles(['ROLE_DAHRA']);
 $user->setIsActive(false);
 
