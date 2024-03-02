@@ -13,6 +13,7 @@ use App\Service\FileUploader;
 
 use OpenApi\Annotations as OA;
 use Symfony\Component\Mime\Email;
+use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -83,7 +84,7 @@ class AdminController extends AbstractController
 
 #[Route('/ajouter-dahra', name: 'ajouter_dahra', methods: ['POST'])]
 
-public function ajouterDahra(Request $request,Security $security, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator,FileUploader $fileUploader): JsonResponse
+public function ajouterDahra(Request $request,Security $security, UserPasswordHasherInterface $passwordHasher, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator,FileUploader $fileUploader,RoleRepository $roleRepository): JsonResponse
     {
 
         $user = $security->getUser();
@@ -131,12 +132,18 @@ public function ajouterDahra(Request $request,Security $security, UserPasswordHa
     if (count($violations) > 0) {
         return new JsonResponse(['errors' => (string) $violations], JsonResponse::HTTP_BAD_REQUEST);
     }
+    $roleDahra = $roleRepository->findOneBy(['nomRole' => 'DAHRA']);
+
+if (!$roleDahra) {
+    return $this->json(['error' => 'Le rôle "ROLE_DAHRA" n\'existe pas.'], JsonResponse::HTTP_BAD_REQUEST);
+}
 
 
 $user = new User();
 $user->setEmail($request->request->get('email'));
 $user->setNumeroTelephone($request->request->get('numeroTelephone'));
 $user->setPassword($passwordHasher->hashPassword($user, $request->request->get('password')));
+$user->setRoleEntity($roleDahra);
 $user->setRoles(['ROLE_DAHRA']);
 $user->setIsActive(false);
 
@@ -1301,5 +1308,117 @@ public function activerDahra(int $id, EntityManagerInterface $entityManager, Sec
 
     return new JsonResponse(['message' => 'Dahra activé avec succès']);
 }
+
+
+/**
+ * @OA\Delete(
+ *     path="/api/supprimer_role/{id}",
+ *     summary="Supprimer un rôle",
+ *     description="Permet de supprimer un rôle existant dans le système. Seuls les utilisateurs avec le rôle 'ROLE_ADMIN' ont accès à cette fonctionnalité.",
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="ID du rôle à supprimer",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Rôle supprimé avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Rôle supprimé avec succès")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Rôle non trouvé"
+ *     )
+ * )
+ */
+#[Route('/supprimer_role/{id}', name: 'supprimer_role', methods: ['DELETE'])]
+public function deleteRole(int $id, EntityManagerInterface $entityManager, Security $security): JsonResponse
+{
+   $user = $security->getUser();
+   if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+       return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+   }
+
+    $role = $entityManager->getRepository(Role::class)->find($id);
+    if (!$role) {
+        return new JsonResponse(['message' => 'Rôle non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    $entityManager->remove($role);
+    $entityManager->flush();
+
+    return new JsonResponse(['message' => 'Rôle supprimé avec succès'], JsonResponse::HTTP_OK);
+}
+
+/**
+ * @OA\Put(
+ *     path="/api/modifier_role/{id}",
+ *     summary="Modifier un rôle",
+ *     description="Permet de modifier le nom d'un rôle existant dans le système. Seuls les utilisateurs avec le rôle 'ROLE_ADMIN' ont accès à cette fonctionnalité.",
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="ID du rôle à modifier",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=true,
+ *         description="Nouveau nom du rôle",
+ *         @OA\JsonContent(
+ *             required={"nomRole"},
+ *             @OA\Property(property="nomRole", type="string", example="ROLE_NEW_NAME")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Rôle modifié avec succès",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Rôle modifié avec succès")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Accès refusé"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Rôle non trouvé"
+ *     )
+ * )
+ */
+#[Route('/modifier_role/{id}', name: 'modifier_role', methods: ['PUT'])]
+public function modifyRole(int $id, Request $request, EntityManagerInterface $entityManager, Security $security): JsonResponse
+{
+   $user = $security->getUser();
+   if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+       return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
+   }
+
+    $role = $entityManager->getRepository(Role::class)->find($id);
+    if (!$role) {
+        return new JsonResponse(['message' => 'Rôle non trouvé'], JsonResponse::HTTP_NOT_FOUND);
+    }
+
+    $data = json_decode($request->getContent(), true);
+    $nomRole = $data['nomRole'];
+
+    $role->setNomRole($nomRole);
+
+    $entityManager->flush();
+
+    return new JsonResponse(['message' => 'Rôle modifié avec succès'], JsonResponse::HTTP_OK);
+}
+
 
 }
