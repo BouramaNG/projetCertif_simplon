@@ -44,3 +44,5 @@ security:
         - { path: ^/api/devenir-marraine, roles: PUBLIC_ACCESS }
         - { path: ^/api/faire-donTest, roles: PUBLIC_ACCESS }
         - { path: ^/api/newsletter, roles: PUBLIC_ACCESS }
+        - { path: ^/api/lister-dahra, roles: PUBLIC_ACCESS }
+        - { path: ^/api/lister-talibe, roles: PUBLIC_ACCESS }
