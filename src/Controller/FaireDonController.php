@@ -65,7 +65,7 @@ class FaireDonController extends AbstractController
 {
     $data = json_decode($request->getContent(), true);
     $user = $security->getUser();
-    if (!$user || !in_array('ROLE_DONATEUR', $user->getRoles())) {
+    if (!$user || !in_array('ROLE_DONATEUR', $user->getRoles()) && !in_array('ROLE_MARRAINE', $user->getRoles())) {
         return new JsonResponse(['message' => 'Accès refusé'], JsonResponse::HTTP_FORBIDDEN);
     }
 
@@ -93,6 +93,10 @@ class FaireDonController extends AbstractController
 
     $em->persist($faireDon);
     $em->flush();
+     
+     $donateur = $faireDon->getUser()->getNom();
+
+     $dahraDuDon = $faireDon->getDahra()->getNom();
 
     $marraine = $faireDon->getUser();
 
@@ -106,7 +110,13 @@ class FaireDonController extends AbstractController
         $mailer->send($email);
     }
 
-    return new JsonResponse(['message' => 'Don effectué avec succès'], JsonResponse::HTTP_CREATED);
+    return new JsonResponse([
+        'message' => 'Don effectué avec succès',
+        'donateur' => $donateur,
+        'dahra' => $dahraDuDon,
+        'date' => $faireDon->getDate()->format('Y-m-d H:i:s'),
+        'status' => $faireDon->getStatus(),
+    ], JsonResponse::HTTP_CREATED);
 }
 
 /**

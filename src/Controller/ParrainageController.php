@@ -78,7 +78,7 @@ class ParrainageController extends AbstractController
             return new JsonResponse(['message' => 'Talibé introuvable'], JsonResponse::HTTP_NOT_FOUND);
         }
     
-        // Récupérer le Dahra associé au Talibe
+     
         $dahraDuTalibe = $talibe->getDahra();
         if (!$dahraDuTalibe) {
             return new JsonResponse(['message' => 'Dahra non associé à ce Talibé'], JsonResponse::HTTP_BAD_REQUEST);
@@ -112,6 +112,9 @@ class ParrainageController extends AbstractController
         $em->persist($parrainage);
         $em->flush();
         $marraine = $parrainage->getUser();
+        $nomDuTalibe = $talibe->getNom();
+        $prenomDuTalibe = $talibe->getPrenom();
+        $nomDuMarraine = $marraine->getNom();
 
         if ($marraine && $marraine->getEmail()) {
             $email = (new Email())
@@ -123,7 +126,13 @@ class ParrainageController extends AbstractController
             $mailer->send($email);
         }
     
-        return new JsonResponse(['message' => 'Parrainage créé avec succès', 'nom_du_dahra' => $nomDuDahra], JsonResponse::HTTP_CREATED);
+        return new JsonResponse([
+            'message' => 'Parrainage créé avec succès',
+            'nom_du_dahra' => $nomDuDahra,
+            'nom_du_talibe_parrainé' => $nomDuTalibe,
+            'prenom_du_talibe_parrainé' => $prenomDuTalibe,
+            'nom_du_marraine' => $nomDuMarraine
+        ], JsonResponse::HTTP_CREATED);
     }
 
     /**
