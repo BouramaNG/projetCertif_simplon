@@ -530,7 +530,7 @@ public function listerTalibe(EntityManagerInterface $em, Request $request): Json
  *     path="/api/mes-dons",
  *     summary="Obtient les dons associés à l'utilisateur connecté",
  *     description="Récupère une liste de tous les dons faits par l'utilisateur connecté ou associés à sa Dahra.",
- *     security={{ "bearerAuth": {} }},
+ * 
  *     @OA\Response(
  *         response=200,
  *         description="Liste des dons obtenue avec succès",
@@ -561,7 +561,7 @@ public function listerTalibe(EntityManagerInterface $em, Request $request): Json
 
 #[Route('/mes-dons', name: 'mes_dons', methods: ['GET'])]
 public function mesDons(EntityManagerInterface $em, Security $security): JsonResponse
-{
+{  
     $user = $security->getUser();
    
     if (!$user) {
@@ -569,12 +569,12 @@ public function mesDons(EntityManagerInterface $em, Security $security): JsonRes
     }
 
     
-    $dahra = $user->getDahras();
+    $dahra = $user->getDahras()->first();
     if (!$dahra) {
         return new JsonResponse(['message' => 'Dahra non associé à cet utilisateur'], JsonResponse::HTTP_NOT_FOUND);
     }
 
-    $dons = $em->getRepository(FaireDon::class)->findBy(['dahra' => $dahra]);
+    $dons = $em->getRepository(FaireDon::class)->findBy(['Dahra' => $dahra->getId()]);
 
     $donsArray = [];
     foreach ($dons as $don) {
