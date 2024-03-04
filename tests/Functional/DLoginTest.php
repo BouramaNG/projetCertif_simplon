@@ -11,8 +11,8 @@ class LoginTest extends WebTestCase
         $client = static::createClient();
 
         $data = [
-            'email' => 'ngombourama18@gmail.com',
-            'password' => 'password123',
+            'email' => 'boura2222@gmail.com',
+            'password' => 'Passer1@',
         ];
 
         $client->request('POST', 'api/login', [], [], [], json_encode($data));

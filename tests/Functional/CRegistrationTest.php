@@ -16,8 +16,8 @@ class DevenirDahraTest extends WebTestCase
 
        
         $data = [
-            'email' => 'ngombourama100@gmail.com',
-            'password' => 'password123',
+            'email' => 'rou@gmail.com',
+            'password' => 'Passer1@',
             'numeroTelephone' => '771234567',
             'nom' => 'sahih Bouhary',
             'nomOuztas' => 'Bouhary',
@@ -50,44 +50,45 @@ class DevenirDahraTest extends WebTestCase
     public function testRegisterDonateur()
     {
         $client = static::createClient();
-
+    
         $data = [
             'nom' => 'bourama',
             'prenom' => 'bourama',
-            'email' => 'bourama300@gmail.com',
-            'password' => 'password123',
+            'email' => 'boura2222@gmail.com',
+            'password' => 'Passer1@',
             'adresse' => 'Pikine',
             'numeroTelephone' => '783718472',
         ];
-
+    
         $client->request('POST', '/api/inscrire-donateur', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($data));
-
+    
         $this->assertResponseIsSuccessful();
         $this->assertEquals(Response::HTTP_CREATED, $client->getResponse()->getStatusCode());
         $this->assertJson($client->getResponse()->getContent());
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertEquals('Inscription Donateur avec succès', $responseData['message']);
+        $this->assertEquals('Inscription du donateur réussie', $responseData['message']);
     }
 
     public function testDevenirMarraine()
     {
         $client = static::createClient();
-
+    
         $data = [
             'nom' => 'boura',
             'prenom' => 'bounama',
-            'email' => 'bourama140@gmail.com',
-            'password' => 'password123',
+            'email' => 'bourama3333@gmail.com',
+            'password' => 'Passer1@',
             'adresse' => 'dakar',
             'numeroTelephone' => '783718472',
         ];
-
+    
         $client->request('POST', '/api/devenir-marraine', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($data));
-
+    
         $this->assertResponseIsSuccessful();
         $this->assertEquals(Response::HTTP_CREATED, $client->getResponse()->getStatusCode());
         $this->assertJson($client->getResponse()->getContent());
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertEquals('Inscription Marraine|Parraine avec succès', $responseData['message']);
+        $this->assertEquals('Inscription de la marraine réussie', $responseData['message']);
     }
+    
 }
